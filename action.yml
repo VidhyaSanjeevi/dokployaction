@@ -1,3 +1,4 @@
+---
 name: 'Dokploy Deployment Suite'
 description: 'Complete Dokploy deployment automation with health checks, rollback, zero-downtime deployments, and comprehensive lifecycle management'
 author: 'SSanjeevi'
@@ -11,72 +12,72 @@ inputs:
   dokploy-url:
     description: 'The URL of your Dokploy instance (e.g., https://dokploy.example.com)'
     required: true
-  
+
   api-key:
     description: 'API key for authenticating with Dokploy'
     required: true
-  
+
   application-id:
     description: 'Dokploy application ID to deploy'
     required: true
-  
+
   docker-image:
     description: 'Docker image to deploy (e.g., ghcr.io/user/app:v1.0.0)'
     required: true
-  
+
   # ===== Deployment Control =====
   wait-for-completion:
     description: 'Wait for deployment to complete (true/false)'
     required: false
     default: 'true'
-  
+
   timeout:
     description: 'Deployment timeout in seconds'
     required: false
     default: '300'
-  
+
   # ===== Health Check Configuration =====
   enable-health-check:
     description: 'Enable health check after deployment (true/false)'
     required: false
     default: 'true'
-  
+
   health-check-url:
     description: 'Health check endpoint URL (e.g., https://app.com/health)'
     required: false
     default: ''
-  
+
   health-check-retries:
     description: 'Number of health check retries'
     required: false
     default: '10'
-  
+
   health-check-interval:
     description: 'Interval between health check retries in seconds'
     required: false
     default: '6'
-  
+
   expected-status-code:
     description: 'Expected HTTP status code for health check'
     required: false
     default: '200'
-  
+
   # ===== Container Cleanup =====
   cleanup-old-containers:
     description: 'Cleanup old containers after successful deployment (true/false)'
     required: false
     default: 'false'
-  
+
   container-prefix:
     description: 'Container name prefix for cleanup filtering'
     required: false
     default: ''
-  
+
   keep-container-count:
     description: 'Number of old containers to keep'
     required: false
     default: '1'
-  
+
   # ===== Rollback Configuration =====
   rollback-on-failure:
     description: 'Automatically rollback on deployment failure (true/false)'
@@ -87,15 +88,15 @@ outputs:
   deployment-id:
     description: 'The deployment ID from Dokploy'
     value: ${{ steps.deploy.outputs.deployment-id }}
-  
+
   deployment-status:
     description: 'The deployment status (success/failed/timeout)'
     value: ${{ steps.deploy.outputs.deployment-status }}
-  
+
   health-status:
     description: 'Health check status (healthy/unhealthy/skipped)'
     value: ${{ steps.health-check.outputs.health-status }}
-  
+
   containers-cleaned:
     description: 'Number of old containers cleaned up'
     value: ${{ steps.cleanup.outputs.removed-count }}

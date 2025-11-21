@@ -1,3 +1,4 @@
+---
 name: 'Deploy to Dokploy'
 description: 'Deploy a Docker image to Dokploy application (uses TypeScript action)'
 author: 'Dokploy Actions'
@@ -49,4 +50,3 @@ runs:
         docker-image: ${{ inputs.docker-image }}
         wait-for-deployment: ${{ inputs.wait-for-deployment }}
         deployment-timeout: ${{ inputs.deployment-timeout }}
-
