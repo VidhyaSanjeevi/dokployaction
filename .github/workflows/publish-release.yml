@@ -60,12 +60,14 @@ jobs:
 
       - name: Verify dist is up to date
         run: |
-          if [ -n "$(git status --porcelain dist/)" ]; then
+          # Check if dist/ has changes (excluding source maps which have absolute paths)
+          CHANGES=$(git status --porcelain dist/ | grep -v '\.map$' || true)
+          if [ -n "$CHANGES" ]; then
             echo "❌ dist/ is out of date. Run 'npm run build' and commit the changes."
-            git diff dist/
+            git diff dist/ -- ':!*.map'
             exit 1
           fi
-          echo "✅ dist/ is up to date"
+          echo "✅ dist/ is up to date (source maps excluded from check)"
 
       - name: Validate action.yml for Marketplace
         run: |
