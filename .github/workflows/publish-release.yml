@@ -26,18 +26,46 @@ jobs:
           else
             VERSION="${{ github.ref_name }}"
           fi
-          
+
           if [[ ! "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "❌ Invalid version format: $VERSION"
             echo "Expected format: v1.0.0"
             exit 1
           fi
-          
+
           echo "✅ Version format valid: $VERSION"
           echo "VERSION=$VERSION" >> $GITHUB_ENV
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Cache node modules
+        uses: actions/cache@v4
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-node-
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: Run tests
-        uses: ./.github/workflows/test-actions.yml
+        run: npm test
+
+      - name: Build action
+        run: npm run build
+
+      - name: Verify dist is up to date
+        run: |
+          if [ -n "$(git status --porcelain dist/)" ]; then
+            echo "❌ dist/ is out of date. Run 'npm run build' and commit the changes."
+            git diff dist/
+            exit 1
+          fi
+          echo "✅ dist/ is up to date"
 
   create-release:
     name: Create GitHub Release
