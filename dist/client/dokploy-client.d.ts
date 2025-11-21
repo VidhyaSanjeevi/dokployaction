@@ -20,7 +20,10 @@ export declare class DokployClient {
     getAllProjects(): Promise<Project[]>;
     getProject(projectId: string): Promise<Project>;
     findProjectByName(projectName: string): Promise<Project | undefined>;
-    createProject(name: string, description?: string): Promise<string>;
+    createProject(name: string, description?: string): Promise<{
+        projectId: string;
+        defaultEnvironmentId?: string;
+    }>;
     createEnvironment(projectId: string, environmentName: string): Promise<string>;
     findEnvironmentInProject(projectId: string, environmentName: string): Promise<Environment | undefined>;
     getAllServers(): Promise<Server[]>;

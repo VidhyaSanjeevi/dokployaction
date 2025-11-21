@@ -54,6 +54,7 @@ export async function run(): Promise<void> {
     // ====================================================================
     core.startGroup('📁 Project Management')
     let projectId = inputs.projectId
+    let defaultEnvironmentId: string | undefined
 
     if (!projectId && inputs.projectName) {
       const existing = await client.findProjectByName(inputs.projectName)
@@ -61,7 +62,9 @@ export async function run(): Promise<void> {
         projectId = existing.projectId || existing.id
         core.info(`✅ Found existing project: ${inputs.projectName} (ID: ${projectId})`)
       } else if (inputs.autoCreateResources) {
-        projectId = await client.createProject(inputs.projectName, inputs.projectDescription)
+        const result = await client.createProject(inputs.projectName, inputs.projectDescription)
+        projectId = result.projectId
+        defaultEnvironmentId = result.defaultEnvironmentId
       } else {
         throw new Error(`Project "${inputs.projectName}" not found and auto-create is disabled`)
       }
@@ -86,6 +89,12 @@ export async function run(): Promise<void> {
         environmentId = existing.environmentId || existing.id
         core.info(
           `✅ Found existing environment: ${inputs.environmentName} (ID: ${environmentId})`
+        )
+      } else if (defaultEnvironmentId) {
+        // Use the default environment created with the project
+        environmentId = defaultEnvironmentId
+        core.info(
+          `✅ Using default environment created with project (ID: ${environmentId})`
         )
       } else if (inputs.autoCreateResources) {
         environmentId = await client.createEnvironment(projectId, inputs.environmentName)

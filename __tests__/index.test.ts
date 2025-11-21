@@ -87,7 +87,9 @@ describe('run', () => {
 
     const mockClient = {
       findProjectByName: jest.fn().mockResolvedValue(null),
-      createProject: jest.fn().mockResolvedValue('new-proj-id'),
+      createProject: jest
+        .fn()
+        .mockResolvedValue({ projectId: 'new-proj-id', defaultEnvironmentId: 'env-default' }),
       findEnvironmentInProject: jest.fn().mockResolvedValue({ id: 'env-456' }),
       resolveServerId: jest.fn().mockResolvedValue('srv-001'),
       getProject: jest.fn().mockResolvedValue({

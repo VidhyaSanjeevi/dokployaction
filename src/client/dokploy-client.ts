@@ -104,28 +104,44 @@ export class DokployClient {
     return projects.find(p => p.name === projectName)
   }
 
-  async createProject(name: string, description?: string): Promise<string> {
+  async createProject(
+    name: string,
+    description?: string
+  ): Promise<{ projectId: string; defaultEnvironmentId?: string }> {
     core.info(`📋 Creating project: ${name}`)
-    const project = await this.post<Project>('/api/project.create', {
+    const response = await this.post<any>('/api/project.create', {
       name,
       description: description || `Automated deployment project: ${name}`
     })
 
     // Log the full response for debugging
-    debugLog('Project creation response', project)
+    debugLog('Project creation response', response)
 
-    // Extract project ID from response
+    // Dokploy API returns nested structure: { project: {...}, environment: {...} }
+    // The API automatically creates a default "production" environment
+    const project = response.project || response
     const projectId = project.projectId || project.id || ''
 
     if (!projectId) {
       core.error('❌ Failed to get project ID from API response')
-      core.error(`Response keys: ${Object.keys(project).join(', ')}`)
-      core.error(`Full response: ${JSON.stringify(project, null, 2)}`)
+      core.error(`Response keys: ${Object.keys(response).join(', ')}`)
+      core.error(`Full response: ${JSON.stringify(response, null, 2)}`)
       throw new Error('Failed to create project: No project ID in response')
     }
 
+    // Extract default environment ID if created
+    let defaultEnvironmentId: string | undefined
+    if (response.environment) {
+      defaultEnvironmentId = response.environment.environmentId || response.environment.id
+      if (defaultEnvironmentId) {
+        core.info(
+          `✅ Default environment created: ${response.environment.name} (ID: ${defaultEnvironmentId})`
+        )
+      }
+    }
+
     core.info(`✅ Created project: ${name} (ID: ${projectId})`)
-    return projectId
+    return { projectId, defaultEnvironmentId }
   }
 
   // ========================================================================
@@ -134,17 +150,20 @@ export class DokployClient {
 
   async createEnvironment(projectId: string, environmentName: string): Promise<string> {
     core.info(`🌍 Creating environment: ${environmentName}`)
-    const environment = await this.post<Environment>('/api/environment.create', {
+    const response = await this.post<any>('/api/environment.create', {
       projectId,
       name: environmentName
     })
 
-    debugLog('Environment creation response', environment)
+    debugLog('Environment creation response', response)
 
+    // Dokploy API may return nested structure or direct object
+    const environment = response.environment || response
     const environmentId = environment.environmentId || environment.id || ''
+
     if (!environmentId) {
       core.error('❌ Failed to get environment ID from API response')
-      core.error(`Full response: ${JSON.stringify(environment, null, 2)}`)
+      core.error(`Full response: ${JSON.stringify(response, null, 2)}`)
       throw new Error('Failed to create environment: No environment ID in response')
     }
 
@@ -209,14 +228,17 @@ export class DokployClient {
     core.info(`📦 Creating application: ${config.name}`)
     debugLog('Application configuration', config)
 
-    const application = await this.post<Application>('/api/application.create', config)
+    const response = await this.post<any>('/api/application.create', config)
 
-    debugLog('Application creation response', application)
+    debugLog('Application creation response', response)
 
+    // Dokploy API may return nested structure or direct object
+    const application = response.application || response
     const applicationId = application.applicationId || application.id || ''
+
     if (!applicationId) {
       core.error('❌ Failed to get application ID from API response')
-      core.error(`Full response: ${JSON.stringify(application, null, 2)}`)
+      core.error(`Full response: ${JSON.stringify(response, null, 2)}`)
       throw new Error('Failed to create application: No application ID in response')
     }
 

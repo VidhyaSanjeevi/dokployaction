@@ -25766,37 +25766,49 @@ class DokployClient {
     }
     async createProject(name, description) {
         core.info(`📋 Creating project: ${name}`);
-        const project = await this.post('/api/project.create', {
+        const response = await this.post('/api/project.create', {
             name,
             description: description || `Automated deployment project: ${name}`
         });
         // Log the full response for debugging
-        (0, helpers_1.debugLog)('Project creation response', project);
-        // Extract project ID from response
+        (0, helpers_1.debugLog)('Project creation response', response);
+        // Dokploy API returns nested structure: { project: {...}, environment: {...} }
+        // The API automatically creates a default "production" environment
+        const project = response.project || response;
         const projectId = project.projectId || project.id || '';
         if (!projectId) {
             core.error('❌ Failed to get project ID from API response');
-            core.error(`Response keys: ${Object.keys(project).join(', ')}`);
-            core.error(`Full response: ${JSON.stringify(project, null, 2)}`);
+            core.error(`Response keys: ${Object.keys(response).join(', ')}`);
+            core.error(`Full response: ${JSON.stringify(response, null, 2)}`);
             throw new Error('Failed to create project: No project ID in response');
         }
+        // Extract default environment ID if created
+        let defaultEnvironmentId;
+        if (response.environment) {
+            defaultEnvironmentId = response.environment.environmentId || response.environment.id;
+            if (defaultEnvironmentId) {
+                core.info(`✅ Default environment created: ${response.environment.name} (ID: ${defaultEnvironmentId})`);
+            }
+        }
         core.info(`✅ Created project: ${name} (ID: ${projectId})`);
-        return projectId;
+        return { projectId, defaultEnvironmentId };
     }
     // ========================================================================
     // Environment Management
     // ========================================================================
     async createEnvironment(projectId, environmentName) {
         core.info(`🌍 Creating environment: ${environmentName}`);
-        const environment = await this.post('/api/environment.create', {
+        const response = await this.post('/api/environment.create', {
             projectId,
             name: environmentName
         });
-        (0, helpers_1.debugLog)('Environment creation response', environment);
+        (0, helpers_1.debugLog)('Environment creation response', response);
+        // Dokploy API may return nested structure or direct object
+        const environment = response.environment || response;
         const environmentId = environment.environmentId || environment.id || '';
         if (!environmentId) {
             core.error('❌ Failed to get environment ID from API response');
-            core.error(`Full response: ${JSON.stringify(environment, null, 2)}`);
+            core.error(`Full response: ${JSON.stringify(response, null, 2)}`);
             throw new Error('Failed to create environment: No environment ID in response');
         }
         core.info(`✅ Created environment: ${environmentName} (ID: ${environmentId})`);
@@ -25846,12 +25858,14 @@ class DokployClient {
     async createApplication(config) {
         core.info(`📦 Creating application: ${config.name}`);
         (0, helpers_1.debugLog)('Application configuration', config);
-        const application = await this.post('/api/application.create', config);
-        (0, helpers_1.debugLog)('Application creation response', application);
+        const response = await this.post('/api/application.create', config);
+        (0, helpers_1.debugLog)('Application creation response', response);
+        // Dokploy API may return nested structure or direct object
+        const application = response.application || response;
         const applicationId = application.applicationId || application.id || '';
         if (!applicationId) {
             core.error('❌ Failed to get application ID from API response');
-            core.error(`Full response: ${JSON.stringify(application, null, 2)}`);
+            core.error(`Full response: ${JSON.stringify(response, null, 2)}`);
             throw new Error('Failed to create application: No application ID in response');
         }
         core.info(`✅ Created application: ${config.name} (ID: ${applicationId})`);
@@ -26235,6 +26249,7 @@ async function run() {
         // ====================================================================
         core.startGroup('📁 Project Management');
         let projectId = inputs.projectId;
+        let defaultEnvironmentId;
         if (!projectId && inputs.projectName) {
             const existing = await client.findProjectByName(inputs.projectName);
             if (existing) {
@@ -26242,7 +26257,9 @@ async function run() {
                 core.info(`✅ Found existing project: ${inputs.projectName} (ID: ${projectId})`);
             }
             else if (inputs.autoCreateResources) {
-                projectId = await client.createProject(inputs.projectName, inputs.projectDescription);
+                const result = await client.createProject(inputs.projectName, inputs.projectDescription);
+                projectId = result.projectId;
+                defaultEnvironmentId = result.defaultEnvironmentId;
             }
             else {
                 throw new Error(`Project "${inputs.projectName}" not found and auto-create is disabled`);
@@ -26263,6 +26280,11 @@ async function run() {
             if (existing) {
                 environmentId = existing.environmentId || existing.id;
                 core.info(`✅ Found existing environment: ${inputs.environmentName} (ID: ${environmentId})`);
+            }
+            else if (defaultEnvironmentId) {
+                // Use the default environment created with the project
+                environmentId = defaultEnvironmentId;
+                core.info(`✅ Using default environment created with project (ID: ${environmentId})`);
             }
             else if (inputs.autoCreateResources) {
                 environmentId = await client.createEnvironment(projectId, inputs.environmentName);

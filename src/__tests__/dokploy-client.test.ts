@@ -53,44 +53,84 @@ describe('DokployClient', () => {
 
   describe('createProject', () => {
     it('should create project and return projectId', async () => {
-      const mockProject: Project = {
-        projectId: 'proj-123',
-        name: 'test-project',
-        description: 'Test description',
-        createdAt: '2024-01-01T00:00:00Z'
+      const mockResponse = {
+        project: {
+          projectId: 'proj-123',
+          name: 'test-project',
+          description: 'Test description',
+          createdAt: '2024-01-01T00:00:00Z'
+        }
       }
 
       // Mock the post method
-      jest.spyOn(client as any, 'post').mockResolvedValue(mockProject)
+      jest.spyOn(client as any, 'post').mockResolvedValue(mockResponse)
 
-      const projectId = await client.createProject('test-project', 'Test description')
+      const result = await client.createProject('test-project', 'Test description')
 
-      expect(projectId).toBe('proj-123')
+      expect(result.projectId).toBe('proj-123')
+      expect(result.defaultEnvironmentId).toBeUndefined()
       expect((client as any).post).toHaveBeenCalledWith('/api/project.create', {
         name: 'test-project',
         description: 'Test description'
       })
     })
 
+    it('should return default environment ID when created', async () => {
+      const mockResponse = {
+        project: {
+          projectId: 'proj-123',
+          name: 'test-project'
+        },
+        environment: {
+          environmentId: 'env-default',
+          name: 'production',
+          projectId: 'proj-123'
+        }
+      }
+
+      jest.spyOn(client as any, 'post').mockResolvedValue(mockResponse)
+
+      const result = await client.createProject('test-project')
+
+      expect(result.projectId).toBe('proj-123')
+      expect(result.defaultEnvironmentId).toBe('env-default')
+    })
+
     it('should handle project with id field instead of projectId', async () => {
-      const mockProject: Project = {
-        id: 'proj-456',
+      const mockResponse = {
+        project: {
+          id: 'proj-456',
+          name: 'test-project'
+        }
+      }
+
+      jest.spyOn(client as any, 'post').mockResolvedValue(mockResponse)
+
+      const result = await client.createProject('test-project')
+      expect(result.projectId).toBe('proj-456')
+    })
+
+    it('should handle direct response without nested project', async () => {
+      const mockResponse = {
+        projectId: 'proj-789',
         name: 'test-project'
       }
 
-      jest.spyOn(client as any, 'post').mockResolvedValue(mockProject)
+      jest.spyOn(client as any, 'post').mockResolvedValue(mockResponse)
 
-      const projectId = await client.createProject('test-project')
-      expect(projectId).toBe('proj-456')
+      const result = await client.createProject('test-project')
+      expect(result.projectId).toBe('proj-789')
     })
 
     it('should throw error if no project ID in response', async () => {
-      const mockProject = {
-        name: 'test-project'
-        // Missing projectId and id
+      const mockResponse = {
+        project: {
+          name: 'test-project'
+          // Missing projectId and id
+        }
       }
 
-      jest.spyOn(client as any, 'post').mockResolvedValue(mockProject)
+      jest.spyOn(client as any, 'post').mockResolvedValue(mockResponse)
 
       await expect(client.createProject('test-project')).rejects.toThrow(
         'Failed to create project: No project ID in response'
@@ -98,12 +138,14 @@ describe('DokployClient', () => {
     })
 
     it('should use default description if not provided', async () => {
-      const mockProject: Project = {
-        projectId: 'proj-789',
-        name: 'test-project'
+      const mockResponse = {
+        project: {
+          projectId: 'proj-789',
+          name: 'test-project'
+        }
       }
 
-      jest.spyOn(client as any, 'post').mockResolvedValue(mockProject)
+      jest.spyOn(client as any, 'post').mockResolvedValue(mockResponse)
 
       await client.createProject('test-project')
 
@@ -218,28 +260,44 @@ describe('DokployClient', () => {
   })
 
   describe('Response Parsing', () => {
-    it('should handle responses with projectId field', async () => {
-      const response = { projectId: 'proj-123', name: 'test' }
+    it('should handle nested project response', async () => {
+      const response = {
+        project: { projectId: 'proj-123', name: 'test' }
+      }
       jest.spyOn(client as any, 'post').mockResolvedValue(response)
 
-      const id = await client.createProject('test')
-      expect(id).toBe('proj-123')
+      const result = await client.createProject('test')
+      expect(result.projectId).toBe('proj-123')
     })
 
-    it('should handle responses with id field', async () => {
-      const response = { id: 'proj-456', name: 'test' }
+    it('should handle direct response with projectId', async () => {
+      const response = { projectId: 'proj-456', name: 'test' }
       jest.spyOn(client as any, 'post').mockResolvedValue(response)
 
-      const id = await client.createProject('test')
-      expect(id).toBe('proj-456')
+      const result = await client.createProject('test')
+      expect(result.projectId).toBe('proj-456')
     })
 
     it('should prefer projectId over id when both present', async () => {
-      const response = { projectId: 'proj-primary', id: 'proj-secondary', name: 'test' }
+      const response = {
+        project: { projectId: 'proj-primary', id: 'proj-secondary', name: 'test' }
+      }
       jest.spyOn(client as any, 'post').mockResolvedValue(response)
 
-      const id = await client.createProject('test')
-      expect(id).toBe('proj-primary')
+      const result = await client.createProject('test')
+      expect(result.projectId).toBe('proj-primary')
+    })
+
+    it('should extract default environment from response', async () => {
+      const response = {
+        project: { projectId: 'proj-123', name: 'test' },
+        environment: { environmentId: 'env-123', name: 'production' }
+      }
+      jest.spyOn(client as any, 'post').mockResolvedValue(response)
+
+      const result = await client.createProject('test')
+      expect(result.projectId).toBe('proj-123')
+      expect(result.defaultEnvironmentId).toBe('env-123')
     })
   })
 })
