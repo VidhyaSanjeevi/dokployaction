@@ -67,6 +67,33 @@ jobs:
           fi
           echo "✅ dist/ is up to date"
 
+      - name: Validate action.yml for Marketplace
+        run: |
+          echo "🔍 Validating action.yml for GitHub Marketplace..."
+
+          # Check required fields exist
+          if ! grep -q "^name:" action.yml; then
+            echo "❌ Missing 'name' field in action.yml"
+            exit 1
+          fi
+
+          if ! grep -q "^description:" action.yml; then
+            echo "❌ Missing 'description' field in action.yml"
+            exit 1
+          fi
+
+          if ! grep -q "^author:" action.yml; then
+            echo "❌ Missing 'author' field in action.yml"
+            exit 1
+          fi
+
+          if ! grep -q "^branding:" action.yml; then
+            echo "❌ Missing 'branding' field in action.yml"
+            exit 1
+          fi
+
+          echo "✅ action.yml is valid for GitHub Marketplace"
+
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
@@ -92,40 +119,60 @@ jobs:
         run: |
           cat > release-notes.md << 'EOF'
           ## 🚀 Dokploy GitHub Actions - ${{ steps.version.outputs.version }}
-          
+
+          [![GitHub Marketplace](https://img.shields.io/badge/Marketplace-Dokploy%20Deployment%20Suite-blue.svg?colorA=24292e&colorB=0366d6&style=flat&longCache=true&logo=github)](https://github.com/marketplace/actions/dokploy-deployment-suite)
+
+          This action is now available on **GitHub Marketplace**! 🎉
+
           ### 📦 Available Actions
-          
+
+          - **Main Action**: `SSanjeevi/dokployaction@${{ steps.version.outputs.version }}`
           - **Deploy**: `SSanjeevi/dokployaction/actions/deploy@${{ steps.version.outputs.version }}`
           - **Health Check**: `SSanjeevi/dokployaction/actions/health-check@${{ steps.version.outputs.version }}`
           - **Cleanup Containers**: `SSanjeevi/dokployaction/actions/cleanup-containers@${{ steps.version.outputs.version }}`
           - **Rollback**: `SSanjeevi/dokployaction/actions/rollback@${{ steps.version.outputs.version }}`
           - **Setup SSL**: `SSanjeevi/dokployaction/actions/setup-ssl@${{ steps.version.outputs.version }}`
           - **Configure Domain**: `SSanjeevi/dokployaction/actions/configure-domain@${{ steps.version.outputs.version }}`
-          
+
           ### 📚 Documentation
-          
+
           - [Quick Start Guide](https://github.com/SSanjeevi/dokployaction/blob/main/QUICK_START.md)
           - [Examples](https://github.com/SSanjeevi/dokployaction/tree/main/examples)
           - [API Reference](https://github.com/SSanjeevi/dokployaction/blob/main/docs/API_REFERENCE.md)
-          
-          ### 🔧 Usage Example
-          
+          - [Contributing Guide](https://github.com/SSanjeevi/dokployaction/blob/main/CONTRIBUTING.md)
+
+          ### 🔧 Quick Start
+
           ```yaml
           - name: Deploy to Dokploy
-            uses: SSanjeevi/dokployaction/actions/deploy@${{ steps.version.outputs.version }}
+            uses: SSanjeevi/dokployaction@${{ steps.version.outputs.version }}
             with:
               dokploy-url: ${{ secrets.DOKPLOY_URL }}
               api-key: ${{ secrets.DOKPLOY_API_KEY }}
               application-id: 'your-app-id'
               docker-image: 'ghcr.io/user/app:latest'
           ```
-          
+
+          ### ✨ Key Features
+
+          - 🚀 **Zero-downtime deployments** with health checks
+          - 🔄 **Automatic rollback** on deployment failure
+          - 🏥 **Health monitoring** with configurable retry logic
+          - 🧹 **Container cleanup** to manage resources
+          - 🔒 **SSL/TLS setup** for secure connections
+          - 🌐 **Domain configuration** automation
+          - 📊 **Comprehensive logging** and GitHub step summaries
+
           ### 📋 What's Changed
-          
+
           See [CHANGELOG.md](https://github.com/SSanjeevi/dokployaction/blob/main/CHANGELOG.md) for detailed changes.
+
+          ### 🙏 Support
+
+          If you find this action helpful, please ⭐ star the repository and share it with others!
           EOF
 
-      - name: Create release
+      - name: Create release and publish to Marketplace
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.version }}
@@ -133,8 +180,30 @@ jobs:
           body_path: release-notes.md
           draft: false
           prerelease: false
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Marketplace publication summary
+        run: |
+          echo "## 🎉 Release Published!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Release ${{ steps.version.outputs.version }} has been created" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📦 GitHub Marketplace Publication" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "The action is now available on GitHub Marketplace!" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Note**: If this is the first release, you may need to:" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to the [Marketplace listing page](https://github.com/marketplace/actions/dokploy-deployment-suite)" >> $GITHUB_STEP_SUMMARY
+          echo "2. Verify the action appears correctly" >> $GITHUB_STEP_SUMMARY
+          echo "3. Update the listing description if needed" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- [Release Page](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }})" >> $GITHUB_STEP_SUMMARY
+          echo "- [Marketplace Listing](https://github.com/marketplace/actions/dokploy-deployment-suite)" >> $GITHUB_STEP_SUMMARY
+          echo "- [Repository](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
 
   update-major-tag:
     name: Update Major Version Tag
