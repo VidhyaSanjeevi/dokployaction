@@ -6,6 +6,7 @@
 export interface DokployConfig {
   url: string
   apiKey: string
+  debugMode?: boolean
 }
 
 export interface Project {

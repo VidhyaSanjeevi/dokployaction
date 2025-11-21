@@ -21,8 +21,10 @@ export class DokployClient {
   private baseUrl: string
   private apiKey: string
   private client: httpm.HttpClient
+  private config: DokployConfig
 
   constructor(config: DokployConfig) {
+    this.config = config
     this.baseUrl = config.url.replace(/\/$/, '') // Remove trailing slash
     this.apiKey = config.apiKey
     this.client = new httpm.HttpClient('dokploy-github-action', undefined, {
@@ -104,11 +106,24 @@ export class DokployClient {
 
   async createProject(name: string, description?: string): Promise<string> {
     core.info(`📋 Creating project: ${name}`)
-    const result = await this.post<{ projectId?: string; id?: string }>('/api/project.create', {
+    const project = await this.post<Project>('/api/project.create', {
       name,
       description: description || `Automated deployment project: ${name}`
     })
-    const projectId = result.projectId || result.id || ''
+
+    // Log the full response for debugging
+    debugLog('Project creation response', project)
+
+    // Extract project ID from response
+    const projectId = project.projectId || project.id || ''
+
+    if (!projectId) {
+      core.error('❌ Failed to get project ID from API response')
+      core.error(`Response keys: ${Object.keys(project).join(', ')}`)
+      core.error(`Full response: ${JSON.stringify(project, null, 2)}`)
+      throw new Error('Failed to create project: No project ID in response')
+    }
+
     core.info(`✅ Created project: ${name} (ID: ${projectId})`)
     return projectId
   }
@@ -119,14 +134,20 @@ export class DokployClient {
 
   async createEnvironment(projectId: string, environmentName: string): Promise<string> {
     core.info(`🌍 Creating environment: ${environmentName}`)
-    const result = await this.post<{ environmentId?: string; id?: string }>(
-      '/api/environment.create',
-      {
-        projectId,
-        name: environmentName
-      }
-    )
-    const environmentId = result.environmentId || result.id || ''
+    const environment = await this.post<Environment>('/api/environment.create', {
+      projectId,
+      name: environmentName
+    })
+
+    debugLog('Environment creation response', environment)
+
+    const environmentId = environment.environmentId || environment.id || ''
+    if (!environmentId) {
+      core.error('❌ Failed to get environment ID from API response')
+      core.error(`Full response: ${JSON.stringify(environment, null, 2)}`)
+      throw new Error('Failed to create environment: No environment ID in response')
+    }
+
     core.info(`✅ Created environment: ${environmentName} (ID: ${environmentId})`)
     return environmentId
   }
@@ -188,11 +209,17 @@ export class DokployClient {
     core.info(`📦 Creating application: ${config.name}`)
     debugLog('Application configuration', config)
 
-    const result = await this.post<{ applicationId?: string; id?: string }>(
-      '/api/application.create',
-      config
-    )
-    const applicationId = result.applicationId || result.id || ''
+    const application = await this.post<Application>('/api/application.create', config)
+
+    debugLog('Application creation response', application)
+
+    const applicationId = application.applicationId || application.id || ''
+    if (!applicationId) {
+      core.error('❌ Failed to get application ID from API response')
+      core.error(`Full response: ${JSON.stringify(application, null, 2)}`)
+      throw new Error('Failed to create application: No application ID in response')
+    }
+
     core.info(`✅ Created application: ${config.name} (ID: ${applicationId})`)
     return applicationId
   }

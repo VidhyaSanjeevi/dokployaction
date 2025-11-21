@@ -7,6 +7,7 @@ export declare class DokployClient {
     private baseUrl;
     private apiKey;
     private client;
+    private config;
     constructor(config: DokployConfig);
     /**
      * Make a GET request to Dokploy API
