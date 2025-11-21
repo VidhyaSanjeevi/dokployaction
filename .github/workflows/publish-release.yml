@@ -92,7 +92,18 @@ jobs:
             exit 1
           fi
 
+          # Check description length (must be < 125 characters)
+          DESCRIPTION=$(grep "^description:" action.yml | sed 's/description: *//' | tr -d "'\"")
+          DESC_LENGTH=${#DESCRIPTION}
+
+          if [ $DESC_LENGTH -ge 125 ]; then
+            echo "❌ Description is too long: $DESC_LENGTH characters (must be < 125)"
+            echo "Description: $DESCRIPTION"
+            exit 1
+          fi
+
           echo "✅ action.yml is valid for GitHub Marketplace"
+          echo "   - Description length: $DESC_LENGTH characters"
 
   create-release:
     name: Create GitHub Release

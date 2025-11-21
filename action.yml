@@ -1,6 +1,6 @@
 ---
 name: 'Dokploy Deployment Suite'
-description: 'Complete Dokploy deployment automation with health checks, rollback, zero-downtime deployments, and comprehensive lifecycle management'
+description: 'Automate Dokploy deployments with health checks, rollback, zero-downtime, and comprehensive lifecycle management'
 author: 'SSanjeevi'
 
 branding:
