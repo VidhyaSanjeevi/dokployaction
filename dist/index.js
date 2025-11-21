@@ -26639,7 +26639,7 @@ function parseInputs() {
         deploymentDescription: (0, helpers_1.parseOptionalStringInput)('deployment-description'),
         rollbackActive: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('rollback-active')),
         waitForDeployment: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('wait-for-deployment')) ?? true,
-        deploymentTimeout: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('deployment-timeout'), 'deployment-timeout'),
+        deploymentTimeout: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('timeout'), 'timeout'),
         cleanupOldContainers: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('cleanup-old-containers')),
         // Health Check
         healthCheckEnabled: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('health-check-enabled')) ?? true,

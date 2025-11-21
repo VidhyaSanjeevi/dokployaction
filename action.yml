@@ -76,7 +76,7 @@ inputs:
   timeout:
     description: 'Deployment timeout in seconds'
     required: false
-    default: '300'
+    default: '20'
 
   # ===== Health Check Configuration =====
   enable-health-check:

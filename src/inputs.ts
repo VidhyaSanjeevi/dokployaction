@@ -175,8 +175,8 @@ export function parseInputs(): ActionInputs {
     waitForDeployment:
       parseBooleanInput(parseOptionalStringInput('wait-for-deployment')) ?? true,
     deploymentTimeout: parseIntInput(
-      parseOptionalStringInput('deployment-timeout'),
-      'deployment-timeout'
+      parseOptionalStringInput('timeout'),
+      'timeout'
     ),
     cleanupOldContainers: parseBooleanInput(parseOptionalStringInput('cleanup-old-containers')),
 
