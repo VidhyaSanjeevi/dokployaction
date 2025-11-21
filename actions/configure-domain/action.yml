@@ -1,3 +1,4 @@
+---
 name: 'Configure Domain'
 description: 'Configure domain for Dokploy application'
 author: 'Dokploy Actions'
@@ -47,11 +48,11 @@ runs:
       shell: bash
       run: |
         domain="${{ inputs.domain-host }}"
-        
+
         if [[ ! "$domain" =~ ^[a-zA-Z0-9][a-zA-Z0-9-]{0,61}[a-zA-Z0-9]?\.[a-zA-Z]{2,}$ ]]; then
           echo "⚠️ Warning: Domain format may be invalid: $domain"
         fi
-        
+
         echo "✅ Domain validated: $domain"
 
     - name: Create domain
@@ -63,7 +64,7 @@ runs:
         echo "Port: ${{ inputs.port }}"
         echo "HTTPS: ${{ inputs.https }}"
         echo "Path: ${{ inputs.path }}"
-        
+
         response=$(curl -s -w "\n%{http_code}" -X POST \
           "${{ inputs.dokploy-url }}/api/domain.create" \
           -H "x-api-key: ${{ inputs.api-key }}" \
@@ -75,22 +76,22 @@ runs:
             \"https\": ${{ inputs.https }},
             \"path\": \"${{ inputs.path }}\"
           }")
-        
+
         http_code=$(echo "$response" | tail -n1)
         body=$(echo "$response" | sed '$d')
-        
+
         if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
           echo "✅ Domain configured successfully"
-          
+
           domain_id=$(echo "$body" | jq -r '.domainId // .id // "unknown"')
           echo "domain-id=$domain_id" >> $GITHUB_OUTPUT
           echo "Domain ID: $domain_id"
-          
+
           protocol="http"
           if [ "${{ inputs.https }}" = "true" ]; then
             protocol="https"
           fi
-          
+
           domain_url="${protocol}://${{ inputs.domain-host }}${{ inputs.path }}"
           echo "domain-url=$domain_url" >> $GITHUB_OUTPUT
           echo "Domain URL: $domain_url"
@@ -104,13 +105,13 @@ runs:
       shell: bash
       run: |
         echo "🔍 Verifying domain configuration..."
-        
+
         response=$(curl -s -X GET \
           "${{ inputs.dokploy-url }}/api/domain.one?domainId=${{ steps.create.outputs.domain-id }}" \
           -H "x-api-key: ${{ inputs.api-key }}")
-        
+
         host=$(echo "$response" | jq -r '.host // "unknown"')
-        
+
         if [ "$host" = "${{ inputs.domain-host }}" ]; then
           echo "✅ Domain verified: $host"
         else
@@ -129,4 +130,3 @@ runs:
         echo "- **Port**: ${{ inputs.port }}" >> $GITHUB_STEP_SUMMARY
         echo "- **HTTPS**: ${{ inputs.https }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Path**: ${{ inputs.path }}" >> $GITHUB_STEP_SUMMARY
-

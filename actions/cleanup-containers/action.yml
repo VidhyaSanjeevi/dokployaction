@@ -1,3 +1,4 @@
+---
 name: 'Cleanup Old Containers'
 description: 'Remove old containers with optional prefix filtering'
 author: 'Dokploy Actions'
@@ -45,13 +46,13 @@ runs:
       shell: bash
       run: |
         echo "📋 Listing containers..."
-        
+
         response=$(curl -s -X GET \
           "${{ inputs.dokploy-url }}/api/container.all?applicationId=${{ inputs.application-id }}" \
           -H "x-api-key: ${{ inputs.api-key }}")
-        
+
         echo "$response" | jq -r '.containers[] | "\(.id) \(.name) \(.created)"' > /tmp/containers.txt || true
-        
+
         if [ -s /tmp/containers.txt ]; then
           echo "Found containers:"
           cat /tmp/containers.txt
@@ -64,11 +65,11 @@ runs:
       shell: bash
       run: |
         echo "🧹 Cleaning up old containers..."
-        
+
         prefix="${{ inputs.container-prefix }}"
         keep_count=${{ inputs.keep-count }}
         dry_run="${{ inputs.dry-run }}"
-        
+
         # Filter by prefix if provided
         if [ -n "$prefix" ]; then
           echo "Filtering containers with prefix: $prefix"
@@ -76,47 +77,47 @@ runs:
         else
           cp /tmp/containers.txt /tmp/filtered.txt
         fi
-        
+
         # Sort by creation time (newest first) and skip the ones to keep
         total_count=$(wc -l < /tmp/filtered.txt)
         echo "Total containers: $total_count"
         echo "Keeping: $keep_count"
-        
+
         if [ $total_count -le $keep_count ]; then
           echo "✅ No containers to remove"
           echo "removed-count=0" >> $GITHUB_OUTPUT
           echo "kept-count=$total_count" >> $GITHUB_OUTPUT
           exit 0
         fi
-        
+
         # Get containers to remove (skip first N)
         tail -n +$((keep_count + 1)) /tmp/filtered.txt > /tmp/to_remove.txt
-        
+
         removed=0
         while IFS= read -r line; do
           container_id=$(echo "$line" | awk '{print $1}')
           container_name=$(echo "$line" | awk '{print $2}')
-          
+
           if [ "$dry_run" = "true" ]; then
             echo "🔍 [DRY RUN] Would remove: $container_name ($container_id)"
           else
             echo "🗑️ Removing: $container_name ($container_id)"
-            
+
             curl -s -X POST \
               "${{ inputs.dokploy-url }}/api/container.remove" \
               -H "x-api-key: ${{ inputs.api-key }}" \
               -H "Content-Type: application/json" \
               -d "{\"containerId\": \"$container_id\"}" > /dev/null
-            
+
             removed=$((removed + 1))
           fi
         done < /tmp/to_remove.txt
-        
+
         kept=$keep_count
-        
+
         echo "removed-count=$removed" >> $GITHUB_OUTPUT
         echo "kept-count=$kept" >> $GITHUB_OUTPUT
-        
+
         if [ "$dry_run" = "true" ]; then
           echo "✅ Dry run completed"
         else
@@ -134,4 +135,3 @@ runs:
         echo "- **Removed**: ${{ steps.cleanup.outputs.removed-count }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Kept**: ${{ steps.cleanup.outputs.kept-count }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Dry Run**: ${{ inputs.dry-run }}" >> $GITHUB_STEP_SUMMARY
-

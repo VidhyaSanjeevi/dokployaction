@@ -1,3 +1,4 @@
+---
 name: 'Setup SSL/TLS'
 description: 'Configure SSL/TLS certificates for Dokploy application'
 author: 'Dokploy Actions'
@@ -64,7 +65,7 @@ runs:
           echo "❌ Invalid certificate type: ${{ inputs.certificate-type }}"
           exit 1
         fi
-        
+
         echo "✅ Inputs validated"
 
     - name: Configure Let's Encrypt
@@ -73,7 +74,7 @@ runs:
       shell: bash
       run: |
         echo "🔒 Configuring Let's Encrypt SSL..."
-        
+
         response=$(curl -s -w "\n%{http_code}" -X POST \
           "${{ inputs.dokploy-url }}/api/domain.generateCertificate" \
           -H "x-api-key: ${{ inputs.api-key }}" \
@@ -82,10 +83,10 @@ runs:
             \"domainId\": \"${{ inputs.domain-id }}\",
             \"email\": \"${{ inputs.email }}\"
           }")
-        
+
         http_code=$(echo "$response" | tail -n1)
         body=$(echo "$response" | sed '$d')
-        
+
         if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
           echo "✅ Let's Encrypt certificate generated successfully"
           echo "status=success" >> $GITHUB_OUTPUT
@@ -102,7 +103,7 @@ runs:
       shell: bash
       run: |
         echo "🔒 Uploading custom SSL certificate..."
-        
+
         response=$(curl -s -w "\n%{http_code}" -X POST \
           "${{ inputs.dokploy-url }}/api/domain.uploadCertificate" \
           -H "x-api-key: ${{ inputs.api-key }}" \
@@ -112,10 +113,10 @@ runs:
             \"certificate\": \"${{ inputs.certificate }}\",
             \"privateKey\": \"${{ inputs.private-key }}\"
           }")
-        
+
         http_code=$(echo "$response" | tail -n1)
         body=$(echo "$response" | sed '$d')
-        
+
         if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
           echo "✅ Custom certificate uploaded successfully"
           echo "status=success" >> $GITHUB_OUTPUT
@@ -148,4 +149,3 @@ runs:
         if [ "${{ inputs.certificate-type }}" = "letsencrypt" ]; then
           echo "- **Email**: ${{ inputs.email }}" >> $GITHUB_STEP_SUMMARY
         fi
-

@@ -1,3 +1,4 @@
+---
 name: 'Rollback Deployment'
 description: 'Rollback Dokploy application to previous version'
 author: 'Dokploy Actions'
@@ -39,7 +40,7 @@ runs:
       run: |
         echo "🔄 Initiating rollback..."
         echo "Application ID: ${{ inputs.application-id }}"
-        
+
         response=$(curl -s -w "\n%{http_code}" -X POST \
           "${{ inputs.dokploy-url }}/api/application.rollback" \
           -H "x-api-key: ${{ inputs.api-key }}" \
@@ -47,10 +48,10 @@ runs:
           -d "{
             \"applicationId\": \"${{ inputs.application-id }}\"
           }")
-        
+
         http_code=$(echo "$response" | tail -n1)
         body=$(echo "$response" | sed '$d')
-        
+
         if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
           echo "✅ Rollback initiated successfully"
           echo "status=initiated" >> $GITHUB_OUTPUT
@@ -66,20 +67,20 @@ runs:
       shell: bash
       run: |
         echo "⏳ Waiting for rollback to complete..."
-        
+
         timeout=${{ inputs.timeout }}
         elapsed=0
         interval=10
-        
+
         while [ $elapsed -lt $timeout ]; do
           response=$(curl -s -X GET \
             "${{ inputs.dokploy-url }}/api/application.one?applicationId=${{ inputs.application-id }}" \
             -H "x-api-key: ${{ inputs.api-key }}")
-          
+
           status=$(echo "$response" | jq -r '.applicationStatus // "unknown"')
-          
+
           echo "Status: $status (${elapsed}s elapsed)"
-          
+
           if [[ "$status" == "done" || "$status" == "running" ]]; then
             echo "✅ Rollback completed successfully"
             echo "status=success" >> $GITHUB_OUTPUT
@@ -89,11 +90,11 @@ runs:
             echo "status=failed" >> $GITHUB_OUTPUT
             exit 1
           fi
-          
+
           sleep $interval
           elapsed=$((elapsed + interval))
         done
-        
+
         echo "⚠️ Rollback timeout after ${timeout}s"
         echo "status=timeout" >> $GITHUB_OUTPUT
         exit 1
@@ -103,11 +104,11 @@ runs:
       shell: bash
       run: |
         echo "🔍 Verifying rollback..."
-        
+
         response=$(curl -s -X GET \
           "${{ inputs.dokploy-url }}/api/application.one?applicationId=${{ inputs.application-id }}" \
           -H "x-api-key: ${{ inputs.api-key }}")
-        
+
         current_version=$(echo "$response" | jq -r '.currentVersion // "unknown"')
         echo "Current version: $current_version"
         echo "✅ Rollback verified"
@@ -121,4 +122,3 @@ runs:
         echo "- **Application ID**: ${{ inputs.application-id }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Status**: ${{ steps.rollback.outputs.status }}" >> $GITHUB_STEP_SUMMARY
         echo "- **Timestamp**: $(date -u +"%Y-%m-%d %H:%M:%S UTC")" >> $GITHUB_STEP_SUMMARY
-
