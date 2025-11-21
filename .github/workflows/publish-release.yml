@@ -183,8 +183,9 @@ jobs:
           If you find this action helpful, please ⭐ star the repository and share it with others!
           EOF
 
-      - name: Create release and publish to Marketplace
-        uses: softprops/action-gh-release@v1
+      - name: Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: Release ${{ steps.version.outputs.version }}
@@ -195,26 +196,52 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Publish to GitHub Marketplace
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
+          echo "📦 Publishing to GitHub Marketplace..."
+          echo ""
+          echo "⚠️  IMPORTANT: For the first release, you need to manually enable Marketplace publication:"
+          echo ""
+          echo "1. Go to: https://github.com/${{ github.repository }}/releases/tag/$VERSION"
+          echo "2. Click 'Edit' on the release"
+          echo "3. Check the box: ☑️  'Publish this Action to the GitHub Marketplace'"
+          echo "4. Click 'Update release'"
+          echo ""
+          echo "After the first release, subsequent releases will automatically publish to Marketplace."
+          echo ""
+          echo "✅ Release created successfully!"
+
       - name: Marketplace publication summary
         run: |
+          VERSION="${{ steps.version.outputs.version }}"
+
           echo "## 🎉 Release Published!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### ✅ Release ${{ steps.version.outputs.version }} has been created" >> $GITHUB_STEP_SUMMARY
+          echo "### ✅ Release $VERSION has been created" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
+
           echo "### 📦 GitHub Marketplace Publication" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "The action is now available on GitHub Marketplace!" >> $GITHUB_STEP_SUMMARY
+          echo "⚠️ **MANUAL STEP REQUIRED** (First Release Only)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Note**: If this is the first release, you may need to:" >> $GITHUB_STEP_SUMMARY
-          echo "1. Go to the [Marketplace listing page](https://github.com/marketplace/actions/dokploy-deployment-suite)" >> $GITHUB_STEP_SUMMARY
-          echo "2. Verify the action appears correctly" >> $GITHUB_STEP_SUMMARY
-          echo "3. Update the listing description if needed" >> $GITHUB_STEP_SUMMARY
+          echo "To publish this action to GitHub Marketplace:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 🔗 Links" >> $GITHUB_STEP_SUMMARY
+          echo "1. Go to the [Release Page](https://github.com/${{ github.repository }}/releases/tag/$VERSION)" >> $GITHUB_STEP_SUMMARY
+          echo "2. Click the **Edit** button" >> $GITHUB_STEP_SUMMARY
+          echo "3. Check the box: ☑️ **Publish this Action to the GitHub Marketplace**" >> $GITHUB_STEP_SUMMARY
+          echo "4. Click **Update release**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- [Release Page](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.version }})" >> $GITHUB_STEP_SUMMARY
-          echo "- [Marketplace Listing](https://github.com/marketplace/actions/dokploy-deployment-suite)" >> $GITHUB_STEP_SUMMARY
-          echo "- [Repository](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
+          echo "> **Note**: After the first release is published to Marketplace, subsequent releases will automatically appear there." >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          echo "### 🔗 Quick Links" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- 📝 [Edit Release](https://github.com/${{ github.repository }}/releases/edit/$VERSION)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏪 [Marketplace Listing](https://github.com/marketplace/actions/dokploy-deployment-suite)" >> $GITHUB_STEP_SUMMARY
+          echo "- 📦 [All Releases](https://github.com/${{ github.repository }}/releases)" >> $GITHUB_STEP_SUMMARY
+          echo "- 🏠 [Repository](https://github.com/${{ github.repository }})" >> $GITHUB_STEP_SUMMARY
 
   update-major-tag:
     name: Update Major Version Tag
