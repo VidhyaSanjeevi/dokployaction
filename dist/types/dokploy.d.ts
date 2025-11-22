@@ -117,9 +117,6 @@ export interface ActionInputs {
     targetPort?: number;
     restartPolicy?: string;
     replicas?: number;
-    minReplicas?: number;
-    maxReplicas?: number;
-    enableAutoScaling?: boolean;
     registryUrl?: string;
     registryUsername?: string;
     registryPassword?: string;
@@ -144,6 +141,7 @@ export interface ActionInputs {
     healthCheckTimeout?: number;
     healthCheckRetries?: number;
     healthCheckInterval?: number;
+    failOnHealthCheckError?: boolean;
     debugMode?: boolean;
     logApiRequests?: boolean;
     logApiResponses?: boolean;

@@ -138,9 +138,6 @@ export interface ActionInputs {
 
   // Scaling
   replicas?: number
-  minReplicas?: number
-  maxReplicas?: number
-  enableAutoScaling?: boolean
 
   // Registry
   registryUrl?: string
@@ -175,6 +172,7 @@ export interface ActionInputs {
   healthCheckTimeout?: number
   healthCheckRetries?: number
   healthCheckInterval?: number
+  failOnHealthCheckError?: boolean
 
   // Debug
   debugMode?: boolean

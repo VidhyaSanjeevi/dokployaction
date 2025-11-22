@@ -99,6 +99,11 @@ inputs:
     required: false
     default: '6'
 
+  fail-on-health-check-error:
+    description: 'Fail the deployment if health check fails (true/false). Set to false to allow manual verification later.'
+    required: false
+    default: 'true'
+
   expected-status-code:
     description: 'Expected HTTP status code for health check'
     required: false
@@ -125,6 +130,38 @@ inputs:
     description: 'Automatically rollback on deployment failure (true/false)'
     required: false
     default: 'true'
+
+  # ===== Resource Limits =====
+  memory-limit:
+    description: 'Maximum memory limit for container in MB (e.g., 512 for 512MB)'
+    required: false
+    default: ''
+
+  memory-reservation:
+    description: 'Soft memory reservation in MB (e.g., 256 for 256MB)'
+    required: false
+    default: ''
+
+  cpu-limit:
+    description: 'Maximum CPU limit (e.g., 1.0 for 1 CPU, 0.5 for half CPU)'
+    required: false
+    default: ''
+
+  cpu-reservation:
+    description: 'CPU reservation/guaranteed allocation (e.g., 0.25 for quarter CPU)'
+    required: false
+    default: ''
+
+  restart-policy:
+    description: 'Container restart policy: always, unless-stopped, on-failure, no'
+    required: false
+    default: 'unless-stopped'
+
+  # ===== Scaling Configuration =====
+  replicas:
+    description: 'Number of container replicas to run (Docker Swarm)'
+    required: false
+    default: '1'
 
   # ===== Docker Registry Configuration =====
   registry-url:

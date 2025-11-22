@@ -50,6 +50,7 @@ That's it! Your application will be deployed with health checks and optional con
 - **Health Checks**: Configurable health verification after deployment
 - **Retry Logic**: Automatic retries with configurable intervals
 - **Deployment Validation**: Marks deployment as failed if health check fails
+- **Flexible Error Handling**: Option to continue deployment even if health check fails for manual verification
 - **Container Cleanup**: Optional cleanup of old containers before deployment
 - **Deployment Status**: Clear success/failure reporting
 
@@ -243,10 +244,17 @@ The main action (`SSanjeevi/dokployaction@v1`) supports the following inputs:
 #### Optional Inputs
 - `wait-for-completion`: Wait for deployment to complete (default: `true`)
 - `timeout`: Deployment timeout in seconds (default: `300`)
+- `memory-limit`: Maximum memory limit in MB (e.g., `512` for 512MB)
+- `memory-reservation`: Soft memory reservation in MB (e.g., `256` for 256MB)
+- `cpu-limit`: Maximum CPU limit (e.g., `1.0` for 1 CPU, `0.5` for half CPU)
+- `cpu-reservation`: CPU reservation/guaranteed allocation (e.g., `0.25`)
+- `restart-policy`: Container restart policy: `always`, `unless-stopped`, `on-failure`, `no` (default: `unless-stopped`)
+- `replicas`: Number of container replicas (Docker Swarm) (default: `1`)
 - `enable-health-check`: Enable health check after deployment (default: `true`)
 - `health-check-path`: Health check endpoint path (e.g., `/health` or `/`)
 - `health-check-retries`: Number of health check retries (default: `10`)
 - `health-check-interval`: Interval between retries in seconds (default: `6`)
+- `fail-on-health-check-error`: Fail deployment if health check fails (default: `true`)
 - `expected-status-code`: Expected HTTP status code (default: `200`)
 - `cleanup-old-containers`: Cleanup old containers before deployment (default: `false`)
 - `container-prefix`: Container name prefix for filtering
@@ -276,11 +284,22 @@ The main action (`SSanjeevi/dokployaction@v1`) supports the following inputs:
     wait-for-completion: true
     timeout: 600
 
+    # Resource limits
+    memory-limit: 512  # 512MB max memory
+    memory-reservation: 256  # 256MB soft limit
+    cpu-limit: 1.0  # Max 1 CPU core
+    cpu-reservation: 0.5  # Reserve 0.5 CPU cores
+    restart-policy: 'unless-stopped'
+
+    # Scaling (Docker Swarm)
+    replicas: 3  # Run 3 instances
+
     # Health checks
     enable-health-check: true
     health-check-path: '/health'
     health-check-retries: 15
     health-check-interval: 10
+    fail-on-health-check-error: true  # Set to false to continue even if health check fails
     expected-status-code: 200
 
     # Container management

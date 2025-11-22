@@ -26419,11 +26419,18 @@ async function run() {
             core.setOutput('health-check-status', healthStatus);
             if (healthStatus === 'unhealthy') {
                 core.setOutput('deployment-status', 'failed');
-                core.setFailed('❌ Deployment failed: Health check returned unhealthy status');
-                core.error('The deployment completed but the application failed health checks.');
-                core.error('This indicates the new version is not functioning correctly.');
-                core.endGroup();
-                throw new Error('Health check failed - deployment marked as failed');
+                if (inputs.failOnHealthCheckError) {
+                    core.setFailed('❌ Deployment failed: Health check returned unhealthy status');
+                    core.error('The deployment completed but the application failed health checks.');
+                    core.error('This indicates the new version is not functioning correctly.');
+                    core.endGroup();
+                    throw new Error('Health check failed - deployment marked as failed');
+                }
+                else {
+                    core.warning('⚠️ Health check failed but fail-on-health-check-error is disabled');
+                    core.warning('The deployment is marked as failed but the workflow will continue.');
+                    core.warning('Please verify the application manually.');
+                }
             }
             core.endGroup();
         }
@@ -26627,9 +26634,6 @@ function parseInputs() {
         restartPolicy: (0, helpers_1.parseOptionalStringInput)('restart-policy'),
         // Scaling
         replicas: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('replicas'), 'replicas'),
-        minReplicas: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('min-replicas'), 'min-replicas'),
-        maxReplicas: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('max-replicas'), 'max-replicas'),
-        enableAutoScaling: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('enable-auto-scaling')),
         // Registry
         registryUrl: (0, helpers_1.parseOptionalStringInput)('registry-url') || 'ghcr.io',
         registryUsername: (0, helpers_1.parseOptionalStringInput)('registry-username'),
@@ -26659,6 +26663,7 @@ function parseInputs() {
         healthCheckTimeout: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('health-check-timeout'), 'health-check-timeout'),
         healthCheckRetries: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('health-check-retries'), 'health-check-retries'),
         healthCheckInterval: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('health-check-interval'), 'health-check-interval'),
+        failOnHealthCheckError: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('fail-on-health-check-error')) ?? true,
         // Debug
         debugMode: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('debug-mode')),
         logApiRequests: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('log-api-requests')),

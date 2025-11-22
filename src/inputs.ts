@@ -145,9 +145,6 @@ export function parseInputs(): ActionInputs {
 
     // Scaling
     replicas: parseIntInput(parseOptionalStringInput('replicas'), 'replicas'),
-    minReplicas: parseIntInput(parseOptionalStringInput('min-replicas'), 'min-replicas'),
-    maxReplicas: parseIntInput(parseOptionalStringInput('max-replicas'), 'max-replicas'),
-    enableAutoScaling: parseBooleanInput(parseOptionalStringInput('enable-auto-scaling')),
 
     // Registry
     registryUrl: parseOptionalStringInput('registry-url') || 'ghcr.io',
@@ -194,6 +191,8 @@ export function parseInputs(): ActionInputs {
       parseOptionalStringInput('health-check-interval'),
       'health-check-interval'
     ),
+    failOnHealthCheckError:
+      parseBooleanInput(parseOptionalStringInput('fail-on-health-check-error')) ?? true,
 
     // Debug
     debugMode: parseBooleanInput(parseOptionalStringInput('debug-mode')),

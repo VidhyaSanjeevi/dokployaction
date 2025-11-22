@@ -264,11 +264,18 @@ export async function run(): Promise<void> {
 
       if (healthStatus === 'unhealthy') {
         core.setOutput('deployment-status', 'failed')
-        core.setFailed('❌ Deployment failed: Health check returned unhealthy status')
-        core.error('The deployment completed but the application failed health checks.')
-        core.error('This indicates the new version is not functioning correctly.')
-        core.endGroup()
-        throw new Error('Health check failed - deployment marked as failed')
+
+        if (inputs.failOnHealthCheckError) {
+          core.setFailed('❌ Deployment failed: Health check returned unhealthy status')
+          core.error('The deployment completed but the application failed health checks.')
+          core.error('This indicates the new version is not functioning correctly.')
+          core.endGroup()
+          throw new Error('Health check failed - deployment marked as failed')
+        } else {
+          core.warning('⚠️ Health check failed but fail-on-health-check-error is disabled')
+          core.warning('The deployment is marked as failed but the workflow will continue.')
+          core.warning('Please verify the application manually.')
+        }
       }
 
       core.endGroup()
