@@ -32,6 +32,7 @@ export declare class DokployClient {
     getApplication(applicationId: string): Promise<Application>;
     createApplication(config: Partial<Application>): Promise<string>;
     updateApplication(applicationId: string, config: Partial<Application>): Promise<void>;
+    saveApplicationResources(applicationId: string, memoryLimit?: number, memoryReservation?: number, cpuLimit?: number, cpuReservation?: number, replicas?: number, restartPolicy?: string): Promise<void>;
     saveDockerProvider(applicationId: string, dockerImage: string, registryUrl?: string, username?: string, password?: string): Promise<void>;
     saveEnvironment(applicationId: string, envString: string): Promise<void>;
     createDomain(applicationId: string, domainConfig: Partial<Domain>): Promise<Domain>;

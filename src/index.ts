@@ -170,45 +170,48 @@ export async function run(): Promise<void> {
     // Step 6.5: Update application settings (resource limits, replicas, etc.)
     // ====================================================================
     core.startGroup('⚙️ Application Settings Update')
-    const updateConfig: Partial<Application> = {}
     
-    if (inputs.memoryLimit !== undefined) {
-      updateConfig.memoryLimit = inputs.memoryLimit
-      core.info(`  Memory Limit: ${inputs.memoryLimit}MB`)
-    }
+    const hasResourceSettings =
+      inputs.memoryLimit !== undefined ||
+      inputs.memoryReservation !== undefined ||
+      inputs.cpuLimit !== undefined ||
+      inputs.cpuReservation !== undefined ||
+      inputs.replicas !== undefined ||
+      inputs.restartPolicy !== undefined
     
-    if (inputs.memoryReservation !== undefined) {
-      updateConfig.memoryReservation = inputs.memoryReservation
-      core.info(`  Memory Reservation: ${inputs.memoryReservation}MB`)
-    }
-    
-    if (inputs.cpuLimit !== undefined) {
-      updateConfig.cpuLimit = inputs.cpuLimit
-      core.info(`  CPU Limit: ${inputs.cpuLimit}`)
-    }
-    
-    if (inputs.cpuReservation !== undefined) {
-      updateConfig.cpuReservation = inputs.cpuReservation
-      core.info(`  CPU Reservation: ${inputs.cpuReservation}`)
-    }
-    
-    if (inputs.replicas !== undefined) {
-      updateConfig.replicas = inputs.replicas
-      core.info(`  Replicas: ${inputs.replicas}`)
-    }
-    
-    if (inputs.restartPolicy) {
-      updateConfig.restartPolicy = inputs.restartPolicy
-      core.info(`  Restart Policy: ${inputs.restartPolicy}`)
-    }
-    
-    // Only update if there are settings to apply
-    if (Object.keys(updateConfig).length > 0) {
-      core.info('🔄 Updating application settings...')
-      await client.updateApplication(applicationId, updateConfig)
-      core.info('✅ Application settings updated')
+    if (hasResourceSettings) {
+      if (inputs.memoryLimit !== undefined) {
+        core.info(`  Memory Limit: ${inputs.memoryLimit}MB`)
+      }
+      if (inputs.memoryReservation !== undefined) {
+        core.info(`  Memory Reservation: ${inputs.memoryReservation}MB`)
+      }
+      if (inputs.cpuLimit !== undefined) {
+        core.info(`  CPU Limit: ${inputs.cpuLimit}`)
+      }
+      if (inputs.cpuReservation !== undefined) {
+        core.info(`  CPU Reservation: ${inputs.cpuReservation}`)
+      }
+      if (inputs.replicas !== undefined) {
+        core.info(`  Replicas: ${inputs.replicas}`)
+      }
+      if (inputs.restartPolicy) {
+        core.info(`  Restart Policy: ${inputs.restartPolicy}`)
+      }
+      
+      core.info('🔄 Updating application resource settings...')
+      await client.saveApplicationResources(
+        applicationId,
+        inputs.memoryLimit,
+        inputs.memoryReservation,
+        inputs.cpuLimit,
+        inputs.cpuReservation,
+        inputs.replicas,
+        inputs.restartPolicy
+      )
+      core.info('✅ Application resources updated')
     } else {
-      core.info('ℹ️ No application settings to update')
+      core.info('ℹ️ No resource settings to update')
     }
     core.endGroup()
 

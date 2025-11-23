@@ -272,6 +272,38 @@ export class DokployClient {
     core.info(`✅ Updated application: ${applicationId}`)
   }
 
+  async saveApplicationResources(
+    applicationId: string,
+    memoryLimit?: number,
+    memoryReservation?: number,
+    cpuLimit?: number,
+    cpuReservation?: number,
+    replicas?: number,
+    restartPolicy?: string
+  ): Promise<void> {
+    core.info(`⚙️ Updating application resources: ${applicationId}`)
+    debugLog('Resource configuration', {
+      memoryLimit,
+      memoryReservation,
+      cpuLimit,
+      cpuReservation,
+      replicas,
+      restartPolicy
+    })
+
+    const payload: Record<string, unknown> = { applicationId }
+    
+    if (memoryLimit !== undefined) payload.memoryLimit = memoryLimit
+    if (memoryReservation !== undefined) payload.memoryReservation = memoryReservation
+    if (cpuLimit !== undefined) payload.cpuLimit = cpuLimit
+    if (cpuReservation !== undefined) payload.cpuReservation = cpuReservation
+    if (replicas !== undefined) payload.replicas = replicas
+    if (restartPolicy !== undefined) payload.restartPolicy = restartPolicy
+
+    await this.post('/api/application.saveAdvanced', payload)
+    core.info(`✅ Application resources updated`)
+  }
+
   // ========================================================================
   // Docker Provider Configuration
   // ========================================================================
