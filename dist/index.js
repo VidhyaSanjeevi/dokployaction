@@ -26341,6 +26341,45 @@ async function run() {
         core.setOutput('application-id', applicationId);
         core.endGroup();
         // ====================================================================
+        // Step 6.5: Update application settings (resource limits, replicas, etc.)
+        // ====================================================================
+        core.startGroup('⚙️ Application Settings Update');
+        const updateConfig = {};
+        if (inputs.memoryLimit !== undefined) {
+            updateConfig.memoryLimit = inputs.memoryLimit;
+            core.info(`  Memory Limit: ${inputs.memoryLimit}MB`);
+        }
+        if (inputs.memoryReservation !== undefined) {
+            updateConfig.memoryReservation = inputs.memoryReservation;
+            core.info(`  Memory Reservation: ${inputs.memoryReservation}MB`);
+        }
+        if (inputs.cpuLimit !== undefined) {
+            updateConfig.cpuLimit = inputs.cpuLimit;
+            core.info(`  CPU Limit: ${inputs.cpuLimit}`);
+        }
+        if (inputs.cpuReservation !== undefined) {
+            updateConfig.cpuReservation = inputs.cpuReservation;
+            core.info(`  CPU Reservation: ${inputs.cpuReservation}`);
+        }
+        if (inputs.replicas !== undefined) {
+            updateConfig.replicas = inputs.replicas;
+            core.info(`  Replicas: ${inputs.replicas}`);
+        }
+        if (inputs.restartPolicy) {
+            updateConfig.restartPolicy = inputs.restartPolicy;
+            core.info(`  Restart Policy: ${inputs.restartPolicy}`);
+        }
+        // Only update if there are settings to apply
+        if (Object.keys(updateConfig).length > 0) {
+            core.info('🔄 Updating application settings...');
+            await client.updateApplication(applicationId, updateConfig);
+            core.info('✅ Application settings updated');
+        }
+        else {
+            core.info('ℹ️ No application settings to update');
+        }
+        core.endGroup();
+        // ====================================================================
         // Step 7: Configure Docker provider
         // ====================================================================
         core.startGroup('🐳 Docker Provider Configuration');
