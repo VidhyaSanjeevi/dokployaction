@@ -132,7 +132,7 @@ runs:
 
         if [[ "$http_code" -ge 200 && "$http_code" -lt 300 ]]; then
           host=$(echo "$body" | jq -r '.host // .data.host // "unknown"')
-          
+
           if [ "$host" = "${{ inputs.domain-host }}" ]; then
             echo "✅ Domain verified: $host"
           else
@@ -150,28 +150,28 @@ runs:
         HEALTH_URL="${{ steps.create.outputs.domain-url }}${{ inputs.health-check-path }}"
         # Remove duplicate slashes if health-check-path starts with /
         HEALTH_URL=$(echo "$HEALTH_URL" | sed 's#//#/#g' | sed 's#:/#://#')
-        
+
         echo "🏥 Checking health of domain: $HEALTH_URL"
         echo "Retries: ${{ inputs.health-check-retries }}"
         echo "Interval: ${{ inputs.health-check-interval }}s"
-        
+
         # Wait for SSL certificate and routing to be ready
         echo "⏳ Waiting 10s for SSL certificate provisioning..."
         sleep 10
-        
+
         for i in $(seq 1 ${{ inputs.health-check-retries }}); do
           echo "Attempt $i/${{ inputs.health-check-retries }}..."
           response=$(curl -s -o /dev/null -w "%{http_code}" -L "$HEALTH_URL" 2>/dev/null || echo "000")
-          
+
           if [ "$response" = "200" ]; then
             echo "✅ Domain is healthy! (HTTP 200)"
             exit 0
           fi
-          
+
           echo "⚠️ Health check returned HTTP $response, retrying in ${{ inputs.health-check-interval }}s..."
           sleep ${{ inputs.health-check-interval }}
         done
-        
+
         echo "⚠️ Health check did not pass within timeout, but domain was configured successfully"
         echo "Please verify manually: $HEALTH_URL"
 
