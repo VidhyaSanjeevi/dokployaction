@@ -65,16 +65,20 @@ runs:
         echo "HTTPS: ${{ inputs.https }}"
         echo "Path: ${{ inputs.path }}"
 
-        response=$(curl -s -w "\n%{http_code}" -X POST \
+        response=$(curl -s -w "\n%{http_code}" -L -X POST \
           "${{ inputs.dokploy-url }}/api/domain.create" \
           -H "x-api-key: ${{ inputs.api-key }}" \
           -H "Content-Type: application/json" \
+          -H "Accept: application/json" \
           -d "{
             \"applicationId\": \"${{ inputs.application-id }}\",
             \"host\": \"${{ inputs.domain-host }}\",
             \"port\": ${{ inputs.port }},
             \"https\": ${{ inputs.https }},
-            \"path\": \"${{ inputs.path }}\"
+            \"path\": \"${{ inputs.path }}\",
+            \"certificateType\": \"letsencrypt\",
+            \"domainType\": \"application\",
+            \"stripPath\": false
           }")
 
         http_code=$(echo "$response" | tail -n1)
