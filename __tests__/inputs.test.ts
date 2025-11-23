@@ -142,8 +142,8 @@ describe('parseInputs', () => {
 
     const result = parseInputs()
 
-    expect(result.cpuLimit).toBe(500)
-    expect(result.cpuReservation).toBe(250)
+    expect(result.cpuLimit).toBe(0.5)   // 500m = 0.5 CPU
+    expect(result.cpuReservation).toBe(0.25) // 250m = 0.25 CPU
   })
 })
 
