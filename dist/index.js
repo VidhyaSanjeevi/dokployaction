@@ -26794,9 +26794,22 @@ function parseCpuLimit(value) {
     if (!value || value === '') {
         return undefined;
     }
-    // Remove 'm' suffix if present
-    const cleanValue = value.toString().replace(/m$/i, '');
-    const parsed = parseInt(cleanValue, 10);
+    // CPU limits can be:
+    // - Decimal values: 0.5, 1.0, 2.5
+    // - Integer values: 1, 2, 4
+    // - Millicpu values with 'm' suffix: 500m, 1000m (convert to decimal)
+    let cleanValue = value.toString().trim();
+    // Handle millicpu format (e.g., "500m" = 0.5 CPU)
+    if (cleanValue.endsWith('m') || cleanValue.endsWith('M')) {
+        const milliValue = parseInt(cleanValue.slice(0, -1), 10);
+        if (isNaN(milliValue)) {
+            throw new Error(`CPU limit must be a valid number, got: ${value}`);
+        }
+        // Convert millicpu to decimal (1000m = 1.0 CPU)
+        return milliValue / 1000;
+    }
+    // Parse as decimal number
+    const parsed = parseFloat(cleanValue);
     if (isNaN(parsed)) {
         throw new Error(`CPU limit must be a valid number, got: ${value}`);
     }
