@@ -264,24 +264,60 @@ export async function run(): Promise<void> {
       core.startGroup('🌐 Domain Configuration')
 
       const existingDomains = await client.getDomains(applicationId)
-      const existingDomain = existingDomains.find(d => d.host === domainConfig.host)
+      
+      // Find all exact matches (same host, port, and path) to prevent duplicates
+      const exactMatches = existingDomains.filter(
+        d => d.host === domainConfig.host && 
+             d.port === domainConfig.port && 
+             d.path === domainConfig.path
+      )
+      
+      // Remove duplicates if more than one exists for the same configuration
+      if (exactMatches.length > 1) {
+        core.warning(`⚠️ Found ${exactMatches.length} duplicate domains for ${domainConfig.host}:${domainConfig.port}${domainConfig.path}`)
+        core.info('🧹 Removing duplicates, keeping only the latest one...')
+        
+        // Sort by creation date and keep the latest
+        const sorted = exactMatches.sort((a, b) => {
+          const dateA = new Date(a.createdAt || 0).getTime()
+          const dateB = new Date(b.createdAt || 0).getTime()
+          return dateB - dateA // Descending order (latest first)
+        })
+        
+        // Remove all except the first (latest) one
+        for (let i = 1; i < sorted.length; i++) {
+          const domainId = sorted[i].domainId || sorted[i].id || ''
+          core.info(`  Removing duplicate domain: ${sorted[i].host} (ID: ${domainId})`)
+          await client.removeDomain(domainId)
+          await sleep(1000) // Small delay between deletions
+        }
+        
+        core.info(`✅ Cleaned up ${sorted.length - 1} duplicate domains`)
+      }
+
+      const existingDomain = exactMatches.length > 0 ? exactMatches[0] : null
 
       if (existingDomain) {
         if (inputs.forceDomainRecreation) {
           // Force recreation: delete and create new
           const domainId = existingDomain.domainId || existingDomain.id || ''
+          core.info(`🔄 Force recreating domain: ${domainConfig.host}`)
           await client.removeDomain(domainId)
           await sleep(2000)
           await client.createDomain(applicationId, domainConfig)
+          core.info(`✅ Domain recreated: ${domainConfig.host}`)
         } else {
           // Update existing domain with new configuration
           const domainId = existingDomain.domainId || existingDomain.id || ''
           core.info(`ℹ️ Domain already exists: ${domainConfig.host}, updating configuration...`)
           await client.updateDomain(domainId, domainConfig)
+          core.info(`✅ Domain configuration updated: ${domainConfig.host}`)
         }
       } else {
-        // Create new domain
+        // Create new domain - only if it doesn't exist
+        core.info(`➕ Creating new domain: ${domainConfig.host}:${domainConfig.port}${domainConfig.path}`)
         await client.createDomain(applicationId, domainConfig)
+        core.info(`✅ Domain created successfully: ${domainConfig.host}`)
       }
 
       deploymentUrl = domainConfig.https

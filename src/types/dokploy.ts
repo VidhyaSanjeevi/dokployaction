@@ -70,6 +70,7 @@ export interface Domain {
   certificateType?: 'letsencrypt' | 'custom' | 'none'
   domainType?: string
   stripPath?: boolean
+  createdAt?: string
 }
 
 export interface Container {
