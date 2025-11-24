@@ -36,6 +36,7 @@ export declare class DokployClient {
     saveDockerProvider(applicationId: string, dockerImage: string, registryUrl?: string, username?: string, password?: string): Promise<void>;
     saveEnvironment(applicationId: string, envString: string): Promise<void>;
     createDomain(applicationId: string, domainConfig: Partial<Domain>): Promise<Domain>;
+    updateDomain(domainId: string, domainConfig: Partial<Domain>): Promise<Domain>;
     removeDomain(domainId: string): Promise<void>;
     getDomains(applicationId: string): Promise<Domain[]>;
     stopApplication(applicationId: string): Promise<void>;

@@ -24,7 +24,6 @@ import { parseInputs } from './inputs'
 import { performHealthCheck } from './health-check'
 import { buildApplicationConfig, buildDomainConfig, parseEnvironmentVariables } from './config'
 import { sleep } from './utils/helpers'
-import type { Application } from './types/dokploy'
 
 export async function run(): Promise<void> {
   try {
@@ -267,14 +266,21 @@ export async function run(): Promise<void> {
       const existingDomains = await client.getDomains(applicationId)
       const existingDomain = existingDomains.find(d => d.host === domainConfig.host)
 
-      if (existingDomain && !inputs.forceDomainRecreation) {
-        core.info(`ℹ️ Domain already exists: ${domainConfig.host}`)
-      } else {
-        if (existingDomain && inputs.forceDomainRecreation) {
+      if (existingDomain) {
+        if (inputs.forceDomainRecreation) {
+          // Force recreation: delete and create new
           const domainId = existingDomain.domainId || existingDomain.id || ''
           await client.removeDomain(domainId)
           await sleep(2000)
+          await client.createDomain(applicationId, domainConfig)
+        } else {
+          // Update existing domain with new configuration
+          const domainId = existingDomain.domainId || existingDomain.id || ''
+          core.info(`ℹ️ Domain already exists: ${domainConfig.host}, updating configuration...`)
+          await client.updateDomain(domainId, domainConfig)
         }
+      } else {
+        // Create new domain
         await client.createDomain(applicationId, domainConfig)
       }
 

@@ -157,6 +157,11 @@ inputs:
     required: false
     default: 'unless-stopped'
 
+  container-name:
+    description: 'Custom container name. Supports templates: {app} (application name), {version} (image tag/version), {env} (environment name). Example: "{app}-{version}" becomes "myapp-v1.0.0"'
+    required: false
+    default: ''
+
   # ===== Scaling Configuration =====
   replicas:
     description: 'Number of container replicas to run (Docker Swarm)'

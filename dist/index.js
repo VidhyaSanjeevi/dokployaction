@@ -25949,6 +25949,16 @@ class DokployClient {
         core.info(`✅ Domain created: ${domainConfig.host} (SSL: ${domainConfig.certificateType})`);
         return result;
     }
+    async updateDomain(domainId, domainConfig) {
+        core.info(`🔄 Updating domain: ${domainConfig.host}`);
+        (0, helpers_1.debugLog)('Domain update configuration', domainConfig);
+        const result = await this.post('/api/domain.update', {
+            domainId,
+            ...domainConfig
+        });
+        core.info(`✅ Domain updated: ${domainConfig.host} (SSL: ${domainConfig.certificateType})`);
+        return result;
+    }
     async removeDomain(domainId) {
         core.info(`🗑️ Removing domain: ${domainId}`);
         await this.post('/api/domain.remove', { domainId });
@@ -26022,7 +26032,43 @@ function buildApplicationConfig(name, projectId, environmentId, serverId, inputs
         restartPolicy: inputs.restartPolicy || 'unless-stopped'
     };
     if (inputs.containerName) {
-        config.appName = inputs.containerName;
+        // Support template variables: {app}, {version}, {env}
+        let containerName = inputs.containerName;
+        // Extract version from docker image (e.g., "ghcr.io/user/app:v1.0.0" -> "v1.0.0")
+        const imageVersion = inputs.dockerImage?.split(':')[1] || 'latest';
+        // Replace template variables
+        containerName = containerName
+            .replace(/{app}/g, name)
+            .replace(/{version}/g, imageVersion)
+            .replace(/{env}/g, inputs.environmentName || 'production');
+        // Docker container name constraints:
+        // - Max 63 characters (DNS label limit)
+        // - Only alphanumeric, dash, underscore, period
+        // - Cannot start with dash or period
+        // Sanitize: replace invalid characters with dash
+        containerName = containerName
+            .replace(/[^a-zA-Z0-9._-]/g, '-')
+            .replace(/^[.-]+/, '') // Remove leading dashes/periods
+            .replace(/[.-]+$/, ''); // Remove trailing dashes/periods
+        // Truncate to 63 characters (DNS label limit)
+        const MAX_LENGTH = 63;
+        if (containerName.length > MAX_LENGTH) {
+            // Try to preserve the version suffix if present
+            const parts = containerName.split('-');
+            const lastPart = parts[parts.length - 1];
+            // If last part looks like a version (starts with v or contains dots), preserve it
+            if (lastPart && (/^v\d/.test(lastPart) || /\d+\.\d+/.test(lastPart))) {
+                const prefixMaxLength = MAX_LENGTH - lastPart.length - 1; // -1 for the dash
+                const prefix = containerName.substring(0, prefixMaxLength);
+                containerName = `${prefix}-${lastPart}`;
+            }
+            else {
+                containerName = containerName.substring(0, MAX_LENGTH);
+            }
+            // Clean up any trailing dashes from truncation
+            containerName = containerName.replace(/[.-]+$/, '');
+        }
+        config.appName = containerName;
     }
     if (inputs.memoryLimit) {
         config.memoryLimit = inputs.memoryLimit;
@@ -26447,15 +26493,23 @@ async function run() {
             core.startGroup('🌐 Domain Configuration');
             const existingDomains = await client.getDomains(applicationId);
             const existingDomain = existingDomains.find(d => d.host === domainConfig.host);
-            if (existingDomain && !inputs.forceDomainRecreation) {
-                core.info(`ℹ️ Domain already exists: ${domainConfig.host}`);
-            }
-            else {
-                if (existingDomain && inputs.forceDomainRecreation) {
+            if (existingDomain) {
+                if (inputs.forceDomainRecreation) {
+                    // Force recreation: delete and create new
                     const domainId = existingDomain.domainId || existingDomain.id || '';
                     await client.removeDomain(domainId);
                     await (0, helpers_1.sleep)(2000);
+                    await client.createDomain(applicationId, domainConfig);
                 }
+                else {
+                    // Update existing domain with new configuration
+                    const domainId = existingDomain.domainId || existingDomain.id || '';
+                    core.info(`ℹ️ Domain already exists: ${domainConfig.host}, updating configuration...`);
+                    await client.updateDomain(domainId, domainConfig);
+                }
+            }
+            else {
+                // Create new domain
                 await client.createDomain(applicationId, domainConfig);
             }
             deploymentUrl = domainConfig.https

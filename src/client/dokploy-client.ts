@@ -365,6 +365,18 @@ export class DokployClient {
     return result
   }
 
+  async updateDomain(domainId: string, domainConfig: Partial<Domain>): Promise<Domain> {
+    core.info(`🔄 Updating domain: ${domainConfig.host}`)
+    debugLog('Domain update configuration', domainConfig)
+
+    const result = await this.post<Domain>('/api/domain.update', {
+      domainId,
+      ...domainConfig
+    })
+    core.info(`✅ Domain updated: ${domainConfig.host} (SSL: ${domainConfig.certificateType})`)
+    return result
+  }
+
   async removeDomain(domainId: string): Promise<void> {
     core.info(`🗑️ Removing domain: ${domainId}`)
     await this.post('/api/domain.remove', { domainId })
