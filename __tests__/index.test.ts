@@ -143,7 +143,7 @@ describe('run', () => {
 
     await run()
 
-    expect(mockStartGroup).toHaveBeenCalledWith(expect.stringContaining('Parsing inputs'))
+    expect(mockStartGroup).toHaveBeenCalledWith(expect.stringContaining('Parsing and Validating Inputs'))
     expect(mockStartGroup).toHaveBeenCalledWith(expect.stringContaining('Connecting to Dokploy'))
     expect(mockEndGroup).toHaveBeenCalled()
   })
