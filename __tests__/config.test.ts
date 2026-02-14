@@ -43,16 +43,18 @@ describe('buildApplicationConfig', () => {
       ...mockInputs,
       memoryLimit: 1024,
       memoryReservation: 512,
-      cpuLimit: 1000,
-      cpuReservation: 500
+      cpuLimit: 2.0,
+      cpuReservation: 0.5
     }
 
     const config = buildApplicationConfig('test-app', 'proj-1', 'env-1', 'srv-1', inputs)
 
-    expect(config.memoryLimit).toBe(1024)
-    expect(config.memoryReservation).toBe(512)
-    expect(config.cpuLimit).toBe(1000)
-    expect(config.cpuReservation).toBe(500)
+    // Memory: MB -> bytes (× 1024 × 1024)
+    expect(config.memoryLimit).toBe(1024 * 1024 * 1024)
+    expect(config.memoryReservation).toBe(512 * 1024 * 1024)
+    // CPU: cores -> NanoCPUs (× 1e9)
+    expect(config.cpuLimit).toBe(2000000000)
+    expect(config.cpuReservation).toBe(500000000)
   })
 
   it('should include custom ports', () => {
