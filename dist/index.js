@@ -26112,17 +26112,21 @@ function buildApplicationConfig(name, projectId, environmentId, serverId, inputs
         }
         config.appName = containerName;
     }
+    // Dokploy stores memory as text and passes directly to Docker's MemoryBytes (expects bytes)
+    // Input is in MB, so convert: MB * 1024 * 1024 = bytes
     if (inputs.memoryLimit) {
-        config.memoryLimit = inputs.memoryLimit;
+        config.memoryLimit = inputs.memoryLimit * 1024 * 1024;
     }
     if (inputs.memoryReservation) {
-        config.memoryReservation = inputs.memoryReservation;
+        config.memoryReservation = inputs.memoryReservation * 1024 * 1024;
     }
+    // Dokploy stores CPU as text and passes directly to Docker's NanoCPUs (1 CPU = 1e9 NanoCPUs)
+    // Input is in CPU cores (e.g., 2.0), so convert: cores * 1e9 = NanoCPUs
     if (inputs.cpuLimit) {
-        config.cpuLimit = inputs.cpuLimit;
+        config.cpuLimit = Math.round(inputs.cpuLimit * 1e9);
     }
     if (inputs.cpuReservation) {
-        config.cpuReservation = inputs.cpuReservation;
+        config.cpuReservation = Math.round(inputs.cpuReservation * 1e9);
     }
     if (inputs.replicas) {
         config.replicas = inputs.replicas;
