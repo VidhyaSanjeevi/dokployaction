@@ -57,6 +57,59 @@ describe('buildApplicationConfig', () => {
     expect(config.cpuReservation).toBe(500000000)
   })
 
+  it('should convert CPU cores to NanoCPUs for Docker Swarm API', () => {
+    // Docker Swarm's NanoCPUs field: 1 CPU core = 1,000,000,000 NanoCPUs
+    // Without conversion, 2.0 cores becomes 2 NanoCPUs = 2e-9 CPUs
+    // which triggers: "invalid cpu value 2e-09: Must be at least 0.001"
+    const testCases = [
+      { cpuLimit: 0.5, cpuReservation: 0.25, expectedLimit: 500000000, expectedReservation: 250000000 },
+      { cpuLimit: 1.0, cpuReservation: 0.5, expectedLimit: 1000000000, expectedReservation: 500000000 },
+      { cpuLimit: 2.0, cpuReservation: 0.5, expectedLimit: 2000000000, expectedReservation: 500000000 },
+      { cpuLimit: 0.001, cpuReservation: 0.001, expectedLimit: 1000000, expectedReservation: 1000000 },
+    ]
+
+    for (const tc of testCases) {
+      const inputs: ActionInputs = {
+        ...mockInputs,
+        cpuLimit: tc.cpuLimit,
+        cpuReservation: tc.cpuReservation
+      }
+      const config = buildApplicationConfig('test-app', 'proj-1', 'env-1', 'srv-1', inputs)
+      expect(config.cpuLimit).toBe(tc.expectedLimit)
+      expect(config.cpuReservation).toBe(tc.expectedReservation)
+    }
+  })
+
+  it('should convert memory MB to bytes for Docker Swarm API', () => {
+    // Docker Swarm's MemoryBytes field expects bytes
+    // Without conversion, 2048 (MB) becomes 2048 bytes ≈ 0 memory
+    const testCases = [
+      { memoryLimit: 256, memoryReservation: 128, expectedLimit: 268435456, expectedReservation: 134217728 },
+      { memoryLimit: 512, memoryReservation: 256, expectedLimit: 536870912, expectedReservation: 268435456 },
+      { memoryLimit: 1024, memoryReservation: 512, expectedLimit: 1073741824, expectedReservation: 536870912 },
+      { memoryLimit: 2048, memoryReservation: 1024, expectedLimit: 2147483648, expectedReservation: 1073741824 },
+    ]
+
+    for (const tc of testCases) {
+      const inputs: ActionInputs = {
+        ...mockInputs,
+        memoryLimit: tc.memoryLimit,
+        memoryReservation: tc.memoryReservation
+      }
+      const config = buildApplicationConfig('test-app', 'proj-1', 'env-1', 'srv-1', inputs)
+      expect(config.memoryLimit).toBe(tc.expectedLimit)
+      expect(config.memoryReservation).toBe(tc.expectedReservation)
+    }
+  })
+
+  it('should not set resource fields when not provided', () => {
+    const config = buildApplicationConfig('test-app', 'proj-1', 'env-1', 'srv-1', mockInputs)
+    expect(config.cpuLimit).toBeUndefined()
+    expect(config.cpuReservation).toBeUndefined()
+    expect(config.memoryLimit).toBeUndefined()
+    expect(config.memoryReservation).toBeUndefined()
+  })
+
   it('should include custom ports', () => {
     const inputs: ActionInputs = {
       ...mockInputs,
