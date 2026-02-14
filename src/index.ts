@@ -210,22 +210,24 @@ export async function run(): Promise<void> {
     if (hasResourceSettings) {
       const updateConfig: Record<string, unknown> = { applicationId }
       
-      // Dokploy API expects memory and CPU limits as strings
+      // Dokploy stores memory/CPU as text and passes directly to Docker Swarm API:
+      // - MemoryBytes: expects bytes (1 MB = 1048576 bytes)
+      // - NanoCPUs: expects nanosecond CPU units (1 CPU core = 1e9 NanoCPUs)
       if (inputs.memoryLimit !== undefined) {
-        updateConfig.memoryLimit = inputs.memoryLimit.toString()
-        core.info(`  Memory Limit: ${inputs.memoryLimit}MB`)
+        updateConfig.memoryLimit = (inputs.memoryLimit * 1024 * 1024).toString()
+        core.info(`  Memory Limit: ${inputs.memoryLimit}MB (${updateConfig.memoryLimit} bytes)`)
       }
       if (inputs.memoryReservation !== undefined) {
-        updateConfig.memoryReservation = inputs.memoryReservation.toString()
-        core.info(`  Memory Reservation: ${inputs.memoryReservation}MB`)
+        updateConfig.memoryReservation = (inputs.memoryReservation * 1024 * 1024).toString()
+        core.info(`  Memory Reservation: ${inputs.memoryReservation}MB (${updateConfig.memoryReservation} bytes)`)
       }
       if (inputs.cpuLimit !== undefined) {
-        updateConfig.cpuLimit = inputs.cpuLimit.toString()
-        core.info(`  CPU Limit: ${inputs.cpuLimit}`)
+        updateConfig.cpuLimit = Math.round(inputs.cpuLimit * 1e9).toString()
+        core.info(`  CPU Limit: ${inputs.cpuLimit} cores (${updateConfig.cpuLimit} NanoCPUs)`)
       }
       if (inputs.cpuReservation !== undefined) {
-        updateConfig.cpuReservation = inputs.cpuReservation.toString()
-        core.info(`  CPU Reservation: ${inputs.cpuReservation}`)
+        updateConfig.cpuReservation = Math.round(inputs.cpuReservation * 1e9).toString()
+        core.info(`  CPU Reservation: ${inputs.cpuReservation} cores (${updateConfig.cpuReservation} NanoCPUs)`)
       }
       
       // Replicas is a number
