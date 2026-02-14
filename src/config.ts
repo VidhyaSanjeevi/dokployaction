@@ -80,12 +80,11 @@ export function buildApplicationConfig(
   }
 
   if (inputs.cpuLimit) {
-    // Dokploy passes CPU values directly to Docker's NanoCPUs field (1 CPU = 1e9 NanoCPUs)
-    config.cpuLimit = Math.round(inputs.cpuLimit * 1e9)
+    config.cpuLimit = inputs.cpuLimit
   }
 
   if (inputs.cpuReservation) {
-    config.cpuReservation = Math.round(inputs.cpuReservation * 1e9)
+    config.cpuReservation = inputs.cpuReservation
   }
 
   if (inputs.replicas) {
