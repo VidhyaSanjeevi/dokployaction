@@ -404,16 +404,19 @@ export class DokployClient {
     applicationId: string,
     title?: string,
     description?: string
-  ): Promise<Deployment> {
+  ): Promise<Deployment | null> {
     core.info(`🚀 Deploying application: ${applicationId}`)
     debugLog('Deployment params', { applicationId, title, description })
 
-    const result = await this.post<Deployment>('/api/application.deploy', {
+    const result = await this.post<Deployment | null>('/api/application.deploy', {
       applicationId,
       title,
       description
     })
     core.info(`✅ Deployment triggered: ${applicationId}`)
+    if (!result) {
+      core.info('ℹ️ Deploy API returned no deployment object (fire-and-forget mode)')
+    }
     return result
   }
 

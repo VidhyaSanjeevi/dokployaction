@@ -380,11 +380,13 @@ export async function run(): Promise<void> {
         inputs.deploymentDescription || 'Automated deployment via GitHub Actions'
       )
       
-      // Capture deployment ID for tracking
-      deploymentId = deploymentResult.deploymentId || deploymentResult.id
+      // Capture deployment ID for tracking (API may return null for fire-and-forget deploys)
+      deploymentId = deploymentResult?.deploymentId || deploymentResult?.id
       if (deploymentId) {
         core.setOutput('deployment-id', deploymentId)
         core.info(`✅ Deployment ID: ${deploymentId}`)
+      } else {
+        core.info('✅ Deployment triggered successfully (no deployment ID returned)')
       }
     } catch (deployError) {
       core.setOutput('deployment-status', 'failed')

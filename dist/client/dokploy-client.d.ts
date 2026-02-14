@@ -40,7 +40,7 @@ export declare class DokployClient {
     removeDomain(domainId: string): Promise<void>;
     getDomains(applicationId: string): Promise<Domain[]>;
     stopApplication(applicationId: string): Promise<void>;
-    deployApplication(applicationId: string, title?: string, description?: string): Promise<Deployment>;
+    deployApplication(applicationId: string, title?: string, description?: string): Promise<Deployment | null>;
     getDeployment(deploymentId: string): Promise<Deployment>;
     getDeploymentLogs(deploymentId: string): Promise<string>;
     waitForDeployment(deploymentId: string, timeoutSeconds?: number, pollIntervalSeconds?: number): Promise<Deployment>;

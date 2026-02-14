@@ -25987,6 +25987,9 @@ class DokployClient {
             description
         });
         core.info(`✅ Deployment triggered: ${applicationId}`);
+        if (!result) {
+            core.info('ℹ️ Deploy API returned no deployment object (fire-and-forget mode)');
+        }
         return result;
     }
     async getDeployment(deploymentId) {
@@ -26632,11 +26635,14 @@ async function run() {
         let deploymentId;
         try {
             const deploymentResult = await client.deployApplication(applicationId, inputs.deploymentTitle || `Deploy ${inputs.dockerImage}`, inputs.deploymentDescription || 'Automated deployment via GitHub Actions');
-            // Capture deployment ID for tracking
-            deploymentId = deploymentResult.deploymentId || deploymentResult.id;
+            // Capture deployment ID for tracking (API may return null for fire-and-forget deploys)
+            deploymentId = deploymentResult?.deploymentId || deploymentResult?.id;
             if (deploymentId) {
                 core.setOutput('deployment-id', deploymentId);
                 core.info(`✅ Deployment ID: ${deploymentId}`);
+            }
+            else {
+                core.info('✅ Deployment triggered successfully (no deployment ID returned)');
             }
         }
         catch (deployError) {
