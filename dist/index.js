@@ -27405,6 +27405,41 @@ function parseInputs() {
     if (registryPassword) {
         (0, helpers_1.sanitizeSecret)(registryPassword);
     }
+    // Parse inputs
+    const volumes = (0, helpers_1.parseOptionalStringInput)('volumes');
+    const groupAdd = (0, helpers_1.parseOptionalStringInput)('group-add');
+    // Validate Docker advanced settings with deployment type
+    if (deploymentType === 'application' && (volumes || groupAdd)) {
+        core.error('❌ Docker advanced settings (volumes, group-add) are not supported with application deployment');
+        core.error('');
+        core.error('The following parameters are not supported by Dokploy API for application deployments:');
+        if (volumes)
+            core.error('  • volumes');
+        if (groupAdd)
+            core.error('  • group-add');
+        core.error('');
+        core.error('These settings require Docker Compose deployment for full control.');
+        core.error('');
+        core.error('To fix this, switch to Docker Compose deployment:');
+        core.error('');
+        core.error('  with:');
+        core.error('    deployment-type: compose');
+        core.error('    compose-file: docker-compose.yml');
+        core.error('    # OR');
+        core.error('    compose-raw: |');
+        core.error('      version: "3.8"');
+        core.error('      services:');
+        core.error('        app:');
+        core.error('          image: your-image:tag');
+        core.error('          volumes:');
+        core.error('            - /var/run/docker.sock:/var/run/docker.sock');
+        core.error('          group_add:');
+        core.error('            - 988');
+        core.error('');
+        core.error('Documentation: https://docs.dokploy.com/docs/core/docker-compose');
+        core.error('');
+        throw new Error('Docker advanced settings (volumes, group-add) require compose deployment type');
+    }
     return {
         // Core
         dokployUrl,
@@ -27442,8 +27477,8 @@ function parseInputs() {
         targetPort: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('target-port'), 'target-port'),
         restartPolicy: (0, helpers_1.parseOptionalStringInput)('restart-policy'),
         // Docker Advanced
-        volumes: (0, helpers_1.parseOptionalStringInput)('volumes'),
-        groupAdd: (0, helpers_1.parseOptionalStringInput)('group-add'),
+        volumes,
+        groupAdd,
         // Scaling
         replicas: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('replicas'), 'replicas'),
         // Registry
@@ -27466,7 +27501,7 @@ function parseInputs() {
         deploymentTitle: (0, helpers_1.parseOptionalStringInput)('deployment-title'),
         deploymentDescription: (0, helpers_1.parseOptionalStringInput)('deployment-description'),
         rollbackActive: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('rollback-active')),
-        waitForDeployment: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('wait-for-deployment')) ?? true,
+        waitForDeployment: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('wait-for-completion')) ?? true,
         deploymentTimeout: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('timeout'), 'timeout'),
         cleanupOldContainers: (0, helpers_1.parseBooleanInput)((0, helpers_1.parseOptionalStringInput)('cleanup-old-containers')),
         // Health Check

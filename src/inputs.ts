@@ -130,6 +130,41 @@ export function parseInputs(): ActionInputs {
     sanitizeSecret(registryPassword)
   }
 
+  // Parse inputs
+  const volumes = parseOptionalStringInput('volumes')
+  const groupAdd = parseOptionalStringInput('group-add')
+
+  // Validate Docker advanced settings with deployment type
+  if (deploymentType === 'application' && (volumes || groupAdd)) {
+    core.error('❌ Docker advanced settings (volumes, group-add) are not supported with application deployment')
+    core.error('')
+    core.error('The following parameters are not supported by Dokploy API for application deployments:')
+    if (volumes) core.error('  • volumes')
+    if (groupAdd) core.error('  • group-add')
+    core.error('')
+    core.error('These settings require Docker Compose deployment for full control.')
+    core.error('')
+    core.error('To fix this, switch to Docker Compose deployment:')
+    core.error('')
+    core.error('  with:')
+    core.error('    deployment-type: compose')
+    core.error('    compose-file: docker-compose.yml')
+    core.error('    # OR')
+    core.error('    compose-raw: |')
+    core.error('      version: "3.8"')
+    core.error('      services:')
+    core.error('        app:')
+    core.error('          image: your-image:tag')
+    core.error('          volumes:')
+    core.error('            - /var/run/docker.sock:/var/run/docker.sock')
+    core.error('          group_add:')
+    core.error('            - 988')
+    core.error('')
+    core.error('Documentation: https://docs.dokploy.com/docs/core/docker-compose')
+    core.error('')
+    throw new Error('Docker advanced settings (volumes, group-add) require compose deployment type')
+  }
+
   return {
     // Core
     dokployUrl,
@@ -178,8 +213,8 @@ export function parseInputs(): ActionInputs {
     restartPolicy: parseOptionalStringInput('restart-policy'),
 
     // Docker Advanced
-    volumes: parseOptionalStringInput('volumes'),
-    groupAdd: parseOptionalStringInput('group-add'),
+    volumes,
+    groupAdd,
 
     // Scaling
     replicas: parseIntInput(parseOptionalStringInput('replicas'), 'replicas'),
@@ -210,7 +245,7 @@ export function parseInputs(): ActionInputs {
     deploymentTitle: parseOptionalStringInput('deployment-title'),
     deploymentDescription: parseOptionalStringInput('deployment-description'),
     rollbackActive: parseBooleanInput(parseOptionalStringInput('rollback-active')),
-    waitForDeployment: parseBooleanInput(parseOptionalStringInput('wait-for-deployment')) ?? true,
+    waitForDeployment: parseBooleanInput(parseOptionalStringInput('wait-for-completion')) ?? true,
     deploymentTimeout: parseIntInput(parseOptionalStringInput('timeout'), 'timeout'),
     cleanupOldContainers: parseBooleanInput(parseOptionalStringInput('cleanup-old-containers')),
 
