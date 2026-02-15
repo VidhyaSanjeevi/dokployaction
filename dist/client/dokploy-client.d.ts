@@ -57,15 +57,16 @@ export declare class DokployClient {
      */
     createCompose(config: Partial<Compose>): Promise<string>;
     /**
-     * Get all compose services for a project
+     * Get environments for a project
      */
-    getAllCompose(): Promise<Compose[]>;
+    getEnvironmentsByProjectId(projectId: string): Promise<Environment[]>;
     /**
      * Get a specific compose service
      */
     getCompose(composeId: string): Promise<Compose>;
     /**
      * Find compose service by name in a project
+     * Gets all environments for the project and searches through their compose services
      */
     findComposeByName(projectId: string, composeName: string): Promise<Compose | undefined>;
     /**

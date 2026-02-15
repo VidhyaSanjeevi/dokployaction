@@ -579,11 +579,11 @@ export class DokployClient {
   }
 
   /**
-   * Get all compose services for a project
+   * Get environments for a project
    */
-  async getAllCompose(): Promise<Compose[]> {
-    debugLog('Fetching all compose services')
-    return await this.get<Compose[]>('/api/compose.all')
+  async getEnvironmentsByProjectId(projectId: string): Promise<Environment[]> {
+    debugLog(`Fetching environments for project: ${projectId}`)
+    return await this.get<Environment[]>(`/api/environment.byProjectId?projectId=${projectId}`)
   }
 
   /**
@@ -596,11 +596,25 @@ export class DokployClient {
 
   /**
    * Find compose service by name in a project
+   * Gets all environments for the project and searches through their compose services
    */
   async findComposeByName(projectId: string, composeName: string): Promise<Compose | undefined> {
     debugLog(`Finding compose service by name: ${composeName} in project ${projectId}`)
-    const allCompose = await this.getAllCompose()
-    return allCompose.find(c => c.name === composeName && c.projectId === projectId)
+    
+    // Get all environments for this project
+    const environments = await this.getEnvironmentsByProjectId(projectId)
+    
+    // Search through all environments for a compose service with matching name
+    for (const env of environments) {
+      if (env.compose && Array.isArray(env.compose)) {
+        const found = env.compose.find(c => c.name === composeName)
+        if (found) {
+          return found
+        }
+      }
+    }
+    
+    return undefined
   }
 
   /**

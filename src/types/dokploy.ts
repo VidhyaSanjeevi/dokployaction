@@ -24,6 +24,12 @@ export interface Environment {
   name: string
   projectId: string
   applications?: Application[]
+  compose?: Compose[]
+  postgres?: unknown[]
+  mysql?: unknown[]
+  mariadb?: unknown[]
+  mongo?: unknown[]
+  redis?: unknown[]
 }
 
 export interface Server {
