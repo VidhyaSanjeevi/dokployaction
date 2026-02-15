@@ -42,7 +42,7 @@ export declare class DokployClient {
     saveDockerAdvancedSettings(applicationId: string, volumes?: string, groupAdd?: string): Promise<void>;
     saveEnvironment(applicationId: string, envString: string): Promise<void>;
     createDomain(applicationId: string, domainConfig: Partial<Domain>): Promise<Domain>;
-    createComposeDomain(composeId: string, domainConfig: Partial<Domain>): Promise<Domain>;
+    createComposeDomain(composeId: string, serviceName: string, domainConfig: Partial<Domain>): Promise<Domain>;
     getDomainsByComposeId(composeId: string): Promise<Domain[]>;
     updateDomain(domainId: string, domainConfig: Partial<Domain>): Promise<Domain>;
     removeDomain(domainId: string): Promise<void>;

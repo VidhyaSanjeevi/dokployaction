@@ -25996,15 +25996,16 @@ class DokployClient {
         core.info(`✅ Domain created: ${domainConfig.host} (SSL: ${domainConfig.certificateType})`);
         return result;
     }
-    async createComposeDomain(composeId, domainConfig) {
-        core.info(`🌐 Creating compose domain: ${domainConfig.host}`);
-        (0, helpers_1.debugLog)('Compose domain configuration', domainConfig);
+    async createComposeDomain(composeId, serviceName, domainConfig) {
+        core.info(`🌐 Creating compose domain: ${domainConfig.host} for service: ${serviceName}`);
+        (0, helpers_1.debugLog)('Compose domain configuration', { serviceName, ...domainConfig });
         const result = await this.post('/api/domain.create', {
             composeId,
             domainType: 'compose',
+            serviceName,
             ...domainConfig
         });
-        core.info(`✅ Compose domain created: ${domainConfig.host} (SSL: ${domainConfig.certificateType})`);
+        core.info(`✅ Compose domain created: ${domainConfig.host} → ${serviceName} (SSL: ${domainConfig.certificateType})`);
         return result;
     }
     async getDomainsByComposeId(composeId) {
@@ -26779,8 +26780,11 @@ async function runComposeDeployment(client, inputs) {
             core.info('✅ Using existing compose domain');
         }
         else {
+            // Determine service name for routing
+            const serviceName = inputs.composeServiceName || composeName || 'app';
             core.info(`➕ Creating new compose domain: ${domainConfig.host}:${domainConfig.port}${domainConfig.path}`);
-            await client.createComposeDomain(composeId, domainConfig);
+            core.info(`   Service: ${serviceName}`);
+            await client.createComposeDomain(composeId, serviceName, domainConfig);
             core.info(`✅ Domain created successfully: ${domainConfig.host}`);
         }
         deploymentUrl = `${protocol}://${domainConfig.host}`;
@@ -27537,6 +27541,7 @@ function parseInputs() {
         composeFile: (0, helpers_1.parseOptionalStringInput)('compose-file'),
         composeRaw: (0, helpers_1.parseOptionalStringInput)('compose-raw'),
         composeName: (0, helpers_1.parseOptionalStringInput)('compose-name'),
+        composeServiceName: (0, helpers_1.parseOptionalStringInput)('compose-service-name'),
         dokployTemplateBase64: (0, helpers_1.parseOptionalStringInput)('dokploy-template-base64'),
         // Project & Environment
         projectId: (0, helpers_1.parseOptionalStringInput)('project-id'),

@@ -195,6 +195,11 @@ inputs:
     required: false
     default: ''
 
+  compose-service-name:
+    description: 'Service name from docker-compose.yml to expose via domain (e.g., "coder", "web"). Required for multi-service compose files. Defaults to compose-name.'
+    required: false
+    default: ''
+
   dokploy-template-base64:
     description: 'Base64-encoded Dokploy template (from templates marketplace). Alternative to compose-file. Used when deployment-type is "compose".'
     required: false

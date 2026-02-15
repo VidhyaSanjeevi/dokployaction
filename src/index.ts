@@ -314,8 +314,11 @@ async function runComposeDeployment(
       core.info(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
       core.info('✅ Using existing compose domain')
     } else {
+      // Determine service name for routing
+      const serviceName = inputs.composeServiceName || composeName || 'app'
       core.info(`➕ Creating new compose domain: ${domainConfig.host}:${domainConfig.port}${domainConfig.path}`)
-      await client.createComposeDomain(composeId, domainConfig)
+      core.info(`   Service: ${serviceName}`)
+      await client.createComposeDomain(composeId, serviceName, domainConfig)
       core.info(`✅ Domain created successfully: ${domainConfig.host}`)
     }
 

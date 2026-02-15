@@ -178,6 +178,7 @@ export function parseInputs(): ActionInputs {
     composeFile: parseOptionalStringInput('compose-file'),
     composeRaw: parseOptionalStringInput('compose-raw'),
     composeName: parseOptionalStringInput('compose-name'),
+    composeServiceName: parseOptionalStringInput('compose-service-name'),
     dokployTemplateBase64: parseOptionalStringInput('dokploy-template-base64'),
 
     // Project & Environment

@@ -121,6 +121,7 @@ export interface ActionInputs {
     composeFile?: string;
     composeRaw?: string;
     composeName?: string;
+    composeServiceName?: string;
     dokployTemplateBase64?: string;
     projectId?: string;
     projectName?: string;
