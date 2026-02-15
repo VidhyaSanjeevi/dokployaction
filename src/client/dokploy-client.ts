@@ -13,7 +13,8 @@ import type {
   Application,
   Domain,
   Container,
-  Deployment
+  Deployment,
+  Compose
 } from '../types/dokploy'
 import { debugLog, logApiRequest, logApiResponse, sleep } from '../utils/helpers'
 
@@ -534,5 +535,130 @@ export class DokployClient {
     core.info(`🗑️ Removing container: ${containerName}`)
     await this.post('/api/container.remove', { containerName })
     core.info(`✅ Container removed: ${containerName}`)
+  }
+
+  // ========================================================================
+  // Docker Compose Operations
+  // ========================================================================
+
+  /**
+   * Create a new Compose service
+   */
+  async createCompose(config: Partial<Compose>): Promise<string> {
+    core.info(`📦 Creating compose service: ${config.name}`)
+    debugLog('Compose configuration', config)
+
+    const response = await this.post<{
+      compose?: Compose
+      composeId?: string
+      id?: string
+    }>('/api/compose.create', config)
+
+    debugLog('Compose creation response', response)
+
+    const compose = response.compose || response
+    const composeId = compose.composeId || compose.id || ''
+
+    if (!composeId) {
+      core.error('❌ Failed to get compose ID from API response')
+      core.error(`Full response: ${JSON.stringify(response, null, 2)}`)
+      throw new Error('Failed to create compose service: No compose ID in response')
+    }
+
+    core.info(`✅ Created compose service: ${config.name} (ID: ${composeId})`)
+    return composeId
+  }
+
+  /**
+   * Get all compose services for a project
+   */
+  async getAllCompose(): Promise<Compose[]> {
+    debugLog('Fetching all compose services')
+    return await this.get<Compose[]>('/api/compose.all')
+  }
+
+  /**
+   * Get a specific compose service
+   */
+  async getCompose(composeId: string): Promise<Compose> {
+    debugLog(`Fetching compose service: ${composeId}`)
+    return await this.get<Compose>(`/api/compose.one?composeId=${composeId}`)
+  }
+
+  /**
+   * Find compose service by name in a project
+   */
+  async findComposeByName(projectId: string, composeName: string): Promise<Compose | undefined> {
+    debugLog(`Finding compose service by name: ${composeName} in project ${projectId}`)
+    const allCompose = await this.getAllCompose()
+    return allCompose.find(c => c.name === composeName && c.projectId === projectId)
+  }
+
+  /**
+   * Update compose service configuration
+   */
+  async updateCompose(composeId: string, config: Record<string, unknown>): Promise<void> {
+    core.info(`🔄 Updating compose service: ${composeId}`)
+    debugLog('Update configuration', config)
+
+    await this.post('/api/compose.update', { composeId, ...config })
+    core.info(`✅ Updated compose service: ${composeId}`)
+  }
+
+  /**
+   * Deploy a compose service
+   */
+  async deployCompose(
+    composeId: string,
+    title?: string,
+    description?: string
+  ): Promise<Deployment> {
+    core.info(`🚀 Deploying compose service: ${composeId}`)
+    debugLog('Deployment config', { composeId, title, description })
+
+    const response = await this.post<Deployment>('/api/compose.deploy', {
+      composeId,
+      title: title || 'Automated compose deployment',
+      description: description || 'Deployed via GitHub Actions'
+    })
+
+    const deploymentId = response.deploymentId || response.id || ''
+    if (deploymentId) {
+      core.info(`✅ Deployment started (ID: ${deploymentId})`)
+    } else {
+      core.info(`✅ Deployment triggered`)
+    }
+
+    return response
+  }
+
+  /**
+   * Save compose file content
+   */
+  async saveComposeFile(composeId: string, composeFile: string): Promise<void> {
+    core.info(`📝 Saving compose file for service: ${composeId}`)
+    const lineCount = composeFile ? composeFile.split('\n').length : 0
+    debugLog(`Saving compose file (${lineCount} lines)`)
+
+    await this.post('/api/compose.saveComposeFile', {
+      composeId,
+      composeFile
+    })
+    core.info(`✅ Compose file saved (${lineCount} lines)`)
+  }
+
+  /**
+   * Save environment variables for compose service
+   */
+  async saveComposeEnvironment(composeId: string, envString: string): Promise<void> {
+    core.info(`🌍 Configuring environment variables for compose service: ${composeId}`)
+    const lineCount = envString ? envString.split('\n').length : 0
+    debugLog(`Saving ${lineCount} environment variables`)
+
+    await this.post('/api/compose.saveEnvironment', {
+      composeId,
+      env: envString
+    })
+    core.info(`✅ Environment variables configured (${lineCount} lines)`)
   }
 }

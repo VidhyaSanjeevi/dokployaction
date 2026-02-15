@@ -2,7 +2,7 @@
  * Dokploy API Client
  * Comprehensive wrapper for all Dokploy API endpoints
  */
-import type { DokployConfig, Project, Environment, Server, Application, Domain, Container, Deployment } from '../types/dokploy';
+import type { DokployConfig, Project, Environment, Server, Application, Domain, Container, Deployment, Compose } from '../types/dokploy';
 export declare class DokployClient {
     private baseUrl;
     private apiKey;
@@ -51,5 +51,37 @@ export declare class DokployClient {
     waitForDeployment(deploymentId: string, timeoutSeconds?: number, pollIntervalSeconds?: number): Promise<Deployment>;
     getContainers(applicationId: string): Promise<Container[]>;
     removeContainer(containerName: string): Promise<void>;
+    /**
+     * Create a new Compose service
+     */
+    createCompose(config: Partial<Compose>): Promise<string>;
+    /**
+     * Get all compose services for a project
+     */
+    getAllCompose(): Promise<Compose[]>;
+    /**
+     * Get a specific compose service
+     */
+    getCompose(composeId: string): Promise<Compose>;
+    /**
+     * Find compose service by name in a project
+     */
+    findComposeByName(projectId: string, composeName: string): Promise<Compose | undefined>;
+    /**
+     * Update compose service configuration
+     */
+    updateCompose(composeId: string, config: Record<string, unknown>): Promise<void>;
+    /**
+     * Deploy a compose service
+     */
+    deployCompose(composeId: string, title?: string, description?: string): Promise<Deployment>;
+    /**
+     * Save compose file content
+     */
+    saveComposeFile(composeId: string, composeFile: string): Promise<void>;
+    /**
+     * Save environment variables for compose service
+     */
+    saveComposeEnvironment(composeId: string, envString: string): Promise<void>;
 }
 //# sourceMappingURL=dokploy-client.d.ts.map

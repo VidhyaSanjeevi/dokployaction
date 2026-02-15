@@ -23,8 +23,9 @@ inputs:
     default: ''
 
   docker-image:
-    description: 'Docker image to deploy (e.g., ghcr.io/user/app:v1.0.0)'
-    required: true
+    description: 'Docker image to deploy (e.g., ghcr.io/user/app:v1.0.0). Required for application deployments, optional for compose deployments.'
+    required: false
+    default: ''
 
   # ===== Project & Environment Management =====
   project-id:
@@ -170,6 +171,32 @@ inputs:
 
   group-add:
     description: 'Additional groups to add the container user to (comma-separated). Example: "988" for Docker group or "docker,sudo"'
+    required: false
+    default: ''
+
+  # ===== Docker Compose & Template Deployments =====
+  deployment-type:
+    description: 'Deployment type: application (default) or compose. Use "compose" to deploy from docker-compose.yml or Dokploy template.'
+    required: false
+    default: 'application'
+
+  compose-file:
+    description: 'Path to docker-compose.yml file (relative to repository root). Used when deployment-type is "compose".'
+    required: false
+    default: ''
+
+  compose-raw:
+    description: 'Raw docker-compose.yml content as string. Alternative to compose-file. Used when deployment-type is "compose".'
+    required: false
+    default: ''
+
+  compose-name:
+    description: 'Name for the compose deployment. Required when deployment-type is "compose".'
+    required: false
+    default: ''
+
+  dokploy-template-base64:
+    description: 'Base64-encoded Dokploy template (from templates marketplace). Alternative to compose-file. Used when deployment-type is "compose".'
     required: false
     default: ''
 

@@ -17,6 +17,7 @@ export function parseInputs(): ActionInputs {
   const dokployUrl = core.getInput('dokploy-url', { required: false })
   const apiKey = core.getInput('api-key', { required: false })
   const dockerImage = core.getInput('docker-image', { required: false })
+  const deploymentType = core.getInput('deployment-type', { required: false }) || 'application'
 
   // Validate required inputs with helpful error messages
   if (!dokployUrl || dokployUrl.trim() === '') {
@@ -65,10 +66,11 @@ export function parseInputs(): ActionInputs {
     throw new Error('Required input api-key is missing or empty')
   }
 
-  if (!dockerImage || dockerImage.trim() === '') {
+  // Docker image is required only for application deployments
+  if (deploymentType === 'application' && (!dockerImage || dockerImage.trim() === '')) {
     core.error('❌ Missing required input: docker-image')
     core.error('')
-    core.error('The docker-image input is required but was not provided or is empty.')
+    core.error('The docker-image input is required for application deployments.')
     core.error('')
     core.error('Possible causes:')
     core.error('  1. The docker-image input was not provided in your workflow')
@@ -81,7 +83,30 @@ export function parseInputs(): ActionInputs {
     core.error('     with:')
     core.error('       docker-image: ghcr.io/owner/repo:tag')
     core.error('')
-    throw new Error('Required input docker-image is missing or empty')
+    core.error('Or if using compose deployment:')
+    core.error('     with:')
+    core.error('       deployment-type: compose')
+    core.error('       compose-file: path/to/docker-compose.yml')
+    core.error('')
+    throw new Error('Required input docker-image is missing or empty for application deployment')
+  }
+
+  // For compose deployments, require at least one compose source
+  if (deploymentType === 'compose') {
+    const composeFile = parseOptionalStringInput('compose-file')
+    const composeRaw = parseOptionalStringInput('compose-raw')
+    const dokployTemplateBase64 = parseOptionalStringInput('dokploy-template-base64')
+    
+    if (!composeFile && !composeRaw && !dokployTemplateBase64) {
+      core.error('❌ Missing compose source for compose deployment')
+      core.error('')
+      core.error('When deployment-type is \"compose\", you must provide one of:')
+      core.error('  • compose-file: Path to docker-compose.yml')
+      core.error('  • compose-raw: Raw docker-compose.yml content')
+      core.error('  • dokploy-template-base64: Base64-encoded Dokploy template')
+      core.error('')
+      throw new Error('Compose deployment requires compose-file, compose-raw, or dokploy-template-base64')
+    }
   }
 
   // Validate URL format
@@ -110,6 +135,15 @@ export function parseInputs(): ActionInputs {
     dokployUrl,
     apiKey,
     dockerImage,
+
+    // Deployment Type
+    deploymentType: deploymentType as 'application' | 'compose',
+
+    // Docker Compose
+    composeFile: parseOptionalStringInput('compose-file'),
+    composeRaw: parseOptionalStringInput('compose-raw'),
+    composeName: parseOptionalStringInput('compose-name'),
+    dokployTemplateBase64: parseOptionalStringInput('dokploy-template-base64'),
 
     // Project & Environment
     projectId: parseOptionalStringInput('project-id'),

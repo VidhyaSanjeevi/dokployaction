@@ -95,6 +95,20 @@ export interface Deployment {
   logs?: string
 }
 
+export interface Compose {
+  composeId?: string
+  id?: string
+  name: string
+  appName?: string
+  description?: string
+  composeFile?: string
+  env?: Record<string, string> | string
+  projectId: string
+  serverId?: string
+  composeStatus?: string
+  composeType?: 'docker-compose' | 'stack'
+}
+
 export interface HealthCheck {
   url: string
   maxRetries?: number
@@ -108,6 +122,15 @@ export interface ActionInputs {
   dokployUrl: string
   apiKey: string
   dockerImage: string
+
+  // Deployment Type
+  deploymentType?: 'application' | 'compose'
+
+  // Docker Compose (for compose deployments)
+  composeFile?: string
+  composeRaw?: string
+  composeName?: string
+  dokployTemplateBase64?: string
 
   // Project & Environment
   projectId?: string

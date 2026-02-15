@@ -82,8 +82,230 @@ export async function run(): Promise<void> {
     core.endGroup()
 
     // ====================================================================
-    // Step 3: Ensure project exists
+    // Route to appropriate deployment handler
     // ====================================================================
+    if (inputs.deploymentType === 'compose') {
+      await runComposeDeployment(client, inputs)
+    } else {
+      await runApplicationDeployment(client, inputs)
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      core.setFailed(`❌ Deployment failed: ${error.message}`)
+      core.debug(`Error stack trace: ${error.stack}`)
+    } else {
+      core.setFailed(`❌ Deployment failed: ${String(error)}`)
+    }
+    throw error
+  }
+}
+
+// ============================================================================
+// Compose Deployment Workflow
+// ============================================================================
+async function runComposeDeployment(
+  client: DokployClient,
+  inputs: ReturnType<typeof parseInputs>
+): Promise<void> {
+  core.info('📦 Starting Docker Compose deployment...')
+  core.info('='.repeat(60))
+
+  // ====================================================================
+  // Step 1: Ensure project exists
+  // ====================================================================
+  core.startGroup('📁 Project Management')
+  let projectId = inputs.projectId
+
+  if (!projectId && inputs.projectName) {
+    const existing = await client.findProjectByName(inputs.projectName)
+    if (existing) {
+      projectId = existing.projectId || existing.id
+      core.info(`✅ Found existing project: ${inputs.projectName} (ID: ${projectId})`)
+    } else if (inputs.autoCreateResources) {
+      const result = await client.createProject(inputs.projectName, inputs.projectDescription)
+      projectId = result.projectId
+    } else {
+      throw new Error(`Project "${inputs.projectName}" not found and auto-create is disabled`)
+    }
+  }
+
+  if (!projectId) {
+    throw new Error('Either project-id or project-name must be provided')
+  }
+
+  core.setOutput('project-id', projectId)
+  core.endGroup()
+
+  // ====================================================================
+  // Step 2: Resolve server ID (optional for compose)
+  // ====================================================================
+  let serverId: string | undefined
+  if (inputs.serverId || inputs.serverName) {
+    core.startGroup('🖥️ Server Resolution')
+    serverId = await client.resolveServerId(inputs.serverId, inputs.serverName)
+    core.setOutput('server-id', serverId)
+    core.endGroup()
+  }
+
+  // ====================================================================
+  // Step 3: Get or create compose service
+  // ====================================================================
+  core.startGroup('📦 Compose Service Management')
+  
+  const composeName = inputs.composeName || inputs.applicationName || 'compose-service'
+  let composeId: string | undefined
+
+  // Try to find existing compose service
+  const existing = await client.findComposeByName(projectId, composeName)
+  if (existing) {
+    composeId = existing.composeId || existing.id
+    core.info(`✅ Found existing compose service: ${composeName} (ID: ${composeId})`)
+  } else if (inputs.autoCreateResources) {
+    // Create new compose service
+    const composeConfig = {
+      name: composeName,
+      projectId,
+      serverId,
+      description: inputs.projectDescription || 'Deployed via GitHub Actions',
+      composeType: 'docker-compose' as const
+    }
+    composeId = await client.createCompose(composeConfig)
+  } else {
+    throw new Error(`Compose service "${composeName}" not found and auto-create is disabled`)
+  }
+
+  if (!composeId) {
+    throw new Error('Failed to get or create compose service')
+  }
+
+  core.setOutput('application-id', composeId)
+  core.setOutput('compose-id', composeId)
+  core.endGroup()
+
+  // ====================================================================
+  // Step 4: Load and save compose file
+  // ====================================================================
+  core.startGroup('📝 Compose File Configuration')
+  
+  let composeContent = ''
+
+  if (inputs.dokployTemplateBase64) {
+    // Decode Base64 template
+    core.info('📥 Loading Dokploy template from Base64...')
+    composeContent = Buffer.from(inputs.dokployTemplateBase64, 'base64').toString('utf-8')
+    core.info(`✅ Template decoded (${composeContent.split('\n').length} lines)`)
+  } else if (inputs.composeRaw) {
+    // Use raw compose content
+    core.info('📥 Using raw compose content...')
+    composeContent = inputs.composeRaw
+    core.info(`✅ Compose content loaded (${composeContent.split('\n').length} lines)`)
+  } else if (inputs.composeFile) {
+    // Read compose file from filesystem
+    const fs = await import('fs/promises')
+    const path = await import('path')
+    
+    core.info(`📥 Reading compose file: ${inputs.composeFile}`)
+    const fullPath = path.resolve(process.cwd(), inputs.composeFile)
+    
+    try {
+      composeContent = await fs.readFile(fullPath, 'utf-8')
+      core.info(`✅ Compose file loaded (${composeContent.split('\n').length} lines)`)
+    } catch (error) {
+      core.error(`❌ Failed to read compose file: ${inputs.composeFile}`)
+      throw error
+    }
+  }
+
+  if (composeContent) {
+    await client.saveComposeFile(composeId, composeContent)
+  }
+
+  core.endGroup()
+
+  // ====================================================================
+  // Step 5: Configure environment variables (if provided)
+  // ====================================================================
+  const envString = parseEnvironmentVariables(inputs)
+  if (envString) {
+    core.startGroup('🌍 Environment Variables Configuration')
+    await client.saveComposeEnvironment(composeId, envString)
+    core.endGroup()
+  }
+
+  // ====================================================================
+  // Step 6: Deploy compose service
+  // ====================================================================
+  core.startGroup('🚀 Deployment')
+  let deploymentId: string | undefined
+  try {
+    const deploymentResult = await client.deployCompose(
+      composeId,
+      inputs.deploymentTitle || `Deploy compose: ${composeName}`,
+      inputs.deploymentDescription || 'Automated compose deployment via GitHub Actions'
+    )
+    
+    deploymentId = deploymentResult?.deploymentId || deploymentResult?.id
+    if (deploymentId) {
+      core.setOutput('deployment-id', deploymentId)
+      core.info(`✅ Deployment ID: ${deploymentId}`)
+    } else {
+      core.info('✅ Deployment triggered successfully')
+    }
+  } catch (deployError) {
+    core.setOutput('deployment-status', 'failed')
+    core.error(`❌ Deployment Failed: ${deployError}`)
+    core.endGroup()
+    throw deployError
+  }
+  core.endGroup()
+
+  // ====================================================================
+  // Step 7: Wait for deployment (if enabled)
+  // ====================================================================
+  if (inputs.waitForDeployment && deploymentId) {
+    core.startGroup('⏳ Waiting for Deployment')
+    try {
+      const timeout = inputs.deploymentTimeout || 300
+      const finalDeployment = await client.waitForDeployment(deploymentId, timeout)
+      core.setOutput('deployment-status', finalDeployment.status || 'completed')
+      core.info(`✅ Deployment completed`)
+    } catch (waitError) {
+      core.setOutput('deployment-status', 'failed')
+      core.error(`❌ Deployment wait failed: ${waitError}`)
+      core.endGroup()
+      throw waitError
+    }
+    core.endGroup()
+  } else {
+    core.setOutput('deployment-status', 'success')
+  }
+
+  // ====================================================================
+  // Summary
+  // ====================================================================
+  core.info('')
+  core.info('='.repeat(60))
+  core.info('✅ Compose deployment completed successfully!')
+  core.info('='.repeat(60))
+  core.info(`📦 Compose Service: ${composeId}`)
+  core.info(`📁 Project: ${projectId}`)
+  if (serverId) core.info(`🖥️ Server: ${serverId}`)
+  core.info('='.repeat(60))
+}
+
+// ============================================================================
+// Application Deployment Workflow
+// ============================================================================
+async function runApplicationDeployment(
+  client: DokployClient,
+  inputs: ReturnType<typeof parseInputs>
+): Promise<void> {
+  core.info('🚀 Starting application deployment...')
+  core.info('='.repeat(60))
+
+  // ====================================================================
+  // Step 3: Ensure project exists
+  // ====================================================================
     core.startGroup('📁 Project Management')
     let projectId = inputs.projectId
     let defaultEnvironmentId: string | undefined
@@ -554,15 +776,6 @@ export async function run(): Promise<void> {
       core.info(`🌐 URL: ${deploymentUrl}`)
     }
     core.info('='.repeat(60))
-  } catch (error) {
-    if (error instanceof Error) {
-      core.setFailed(`❌ Deployment failed: ${error.message}`)
-      core.debug(`Error stack trace: ${error.stack}`)
-    } else {
-      core.setFailed(`❌ Deployment failed: ${String(error)}`)
-    }
-    throw error
-  }
 }
 
 // Run the action if this is the main module
