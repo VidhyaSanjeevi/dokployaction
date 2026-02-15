@@ -26025,7 +26025,7 @@ class DokployClient {
     }
     async removeDomain(domainId) {
         core.info(`🗑️ Removing domain: ${domainId}`);
-        await this.post('/api/domain.remove', { domainId });
+        await this.post('/api/domain.delete', { domainId });
         core.info(`✅ Domain removed: ${domainId}`);
     }
     async getDomains(applicationId) {
