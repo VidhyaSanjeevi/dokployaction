@@ -36,6 +36,7 @@ export declare class DokployClient {
     saveDockerProvider(applicationId: string, dockerImage: string, registryUrl?: string, username?: string, password?: string): Promise<void>;
     /**
      * Configure Docker advanced settings (volumes, group_add)
+     * Uses the mounts.create API for bind mounts/volumes
      * These settings are passed directly to Docker/Docker Swarm
      */
     saveDockerAdvancedSettings(applicationId: string, volumes?: string, groupAdd?: string): Promise<void>;

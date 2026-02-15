@@ -25926,6 +25926,7 @@ class DokployClient {
     }
     /**
      * Configure Docker advanced settings (volumes, group_add)
+     * Uses the mounts.create API for bind mounts/volumes
      * These settings are passed directly to Docker/Docker Swarm
      */
     async saveDockerAdvancedSettings(applicationId, volumes, groupAdd) {
@@ -25933,33 +25934,40 @@ class DokployClient {
             return; // Nothing to configure
         }
         core.info(`⚙️ Configuring Docker advanced settings for application: ${applicationId}`);
-        const payload = { applicationId };
-        // Parse volumes (one per line, format: /host:/container or /host:/container:ro)
+        // Parse volumes and create mounts using mounts.create API
         if (volumes) {
             const volumeList = volumes
                 .split('\n')
                 .map(v => v.trim())
                 .filter(v => v.length > 0);
             if (volumeList.length > 0) {
-                payload.volumes = volumeList;
                 core.info(`  Volumes: ${volumeList.length} mount(s)`);
-                volumeList.forEach(v => core.info(`    - ${v}`));
+                for (const vol of volumeList) {
+                    // Parse volume string: host_path:container_path[:ro]
+                    const parts = vol.split(':');
+                    if (parts.length >= 2) {
+                        const hostPath = parts[0];
+                        const mountPath = parts[1];
+                        core.info(`    - ${hostPath}:${mountPath}`);
+                        // Create mount using mounts.create API
+                        await this.post('/api/mounts.create', {
+                            serviceId: applicationId,
+                            mountPath,
+                            hostPath,
+                            type: 'bind',
+                            serviceType: 'application'
+                        });
+                    }
+                }
             }
         }
-        // Parse group_add (comma-separated group IDs)
+        // Note: group_add is not directly supported by Dokploy API
+        // It would need to be configured via Docker Compose or custom Swarm settings
         if (groupAdd) {
-            const groups = groupAdd
-                .split(',')
-                .map(g => g.trim())
-                .filter(g => g.length > 0);
-            if (groups.length > 0) {
-                payload.groupAdd = groups;
-                core.info(`  Groups: ${groups.join(', ')}`);
-            }
+            core.warning(`⚠️ group-add parameter is not directly supported by Dokploy API`);
+            core.warning(`   Consider using Docker Compose deployment type for full group_add support`);
+            core.info(`   Requested groups: ${groupAdd}`);
         }
-        (0, helpers_1.debugLog)('Docker advanced settings', payload);
-        // Use saveAdvanced endpoint which handles additional Docker settings
-        await this.post('/api/application.saveAdvanced', payload);
         core.info(`✅ Docker advanced settings configured`);
     }
     // ========================================================================
