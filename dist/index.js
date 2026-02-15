@@ -26738,7 +26738,7 @@ async function runComposeDeployment(client, inputs) {
     // ====================================================================
     let deploymentCompleted = false;
     const deploymentUrl = inputs.domainHost
-        ? `https://${inputs.domainHost}${inputs.healthCheckPath || ''}`
+        ? `https://${inputs.domainHost}`
         : undefined;
     if (inputs.waitForDeployment && deploymentId) {
         core.startGroup('⏳ Waiting for Deployment');

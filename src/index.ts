@@ -283,7 +283,7 @@ async function runComposeDeployment(
   // ====================================================================
   let deploymentCompleted = false
   const deploymentUrl = inputs.domainHost 
-    ? `https://${inputs.domainHost}${inputs.healthCheckPath || ''}`
+    ? `https://${inputs.domainHost}`
     : undefined
   
   if (inputs.waitForDeployment && deploymentId) {
