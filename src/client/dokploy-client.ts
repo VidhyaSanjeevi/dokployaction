@@ -595,22 +595,20 @@ export class DokployClient {
   }
 
   /**
-   * Find compose service by name in a project
-   * Gets all environments for the project and searches through their compose services
+   * Find compose service by name in an environment
    */
-  async findComposeByName(projectId: string, composeName: string): Promise<Compose | undefined> {
-    debugLog(`Finding compose service by name: ${composeName} in project ${projectId}`)
+  async findComposeByName(environmentId: string, composeName: string): Promise<Compose | undefined> {
+    debugLog(`Finding compose service by name: ${composeName} in environment ${environmentId}`)
     
-    // Get all environments for this project
-    const environments = await this.getEnvironmentsByProjectId(projectId)
+    // Get the environment with its services
+    const environment = await this.get<Environment>(`/api/environment.one?environmentId=${environmentId}`)
     
-    // Search through all environments for a compose service with matching name
-    for (const env of environments) {
-      if (env.compose && Array.isArray(env.compose)) {
-        const found = env.compose.find(c => c.name === composeName)
-        if (found) {
-          return found
-        }
+    // Search for compose service with matching name
+    if (environment.compose && Array.isArray(environment.compose)) {
+      const found = environment.compose.find(c => c.name === composeName)
+      if (found) {
+        core.info(`Found compose service "${composeName}" in environment`)
+        return found
       }
     }
     

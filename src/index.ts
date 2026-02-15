@@ -138,7 +138,32 @@ async function runComposeDeployment(
   core.endGroup()
 
   // ====================================================================
-  // Step 2: Resolve server ID (optional for compose)
+  // Step 2: Ensure environment exists
+  // ====================================================================
+  core.startGroup('🌍 Environment Management')
+  let environmentId = inputs.environmentId
+
+  if (!environmentId && inputs.environmentName) {
+    const existing = await client.findEnvironmentInProject(projectId, inputs.environmentName)
+    if (existing) {
+      environmentId = existing.environmentId || existing.id
+      core.info(`✅ Found existing environment: ${inputs.environmentName} (ID: ${environmentId})`)
+    } else if (inputs.autoCreateResources) {
+      environmentId = await client.createEnvironment(projectId, inputs.environmentName)
+    } else {
+      throw new Error(`Environment "${inputs.environmentName}" not found and auto-create is disabled`)
+    }
+  }
+
+  if (!environmentId) {
+    throw new Error('Either environment-id or environment-name must be provided')
+  }
+
+  core.setOutput('environment-id', environmentId)
+  core.endGroup()
+
+  // ====================================================================
+  // Step 3: Resolve server ID (optional for compose)
   // ====================================================================
   let serverId: string | undefined
   if (inputs.serverId || inputs.serverName) {
@@ -149,7 +174,7 @@ async function runComposeDeployment(
   }
 
   // ====================================================================
-  // Step 3: Get or create compose service
+  // Step 4: Get or create compose service
   // ====================================================================
   core.startGroup('📦 Compose Service Management')
   
@@ -157,7 +182,7 @@ async function runComposeDeployment(
   let composeId: string | undefined
 
   // Try to find existing compose service
-  const existing = await client.findComposeByName(projectId, composeName)
+  const existing = await client.findComposeByName(environmentId, composeName)
   if (existing) {
     composeId = existing.composeId || existing.id
     core.info(`✅ Found existing compose service: ${composeName} (ID: ${composeId})`)
@@ -165,7 +190,7 @@ async function runComposeDeployment(
     // Create new compose service
     const composeConfig = {
       name: composeName,
-      projectId,
+      environmentId,
       serverId,
       description: inputs.projectDescription || 'Deployed via GitHub Actions',
       composeType: 'docker-compose' as const

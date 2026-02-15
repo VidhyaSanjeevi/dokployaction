@@ -100,7 +100,8 @@ export interface Compose {
     description?: string;
     composeFile?: string;
     env?: Record<string, string> | string;
-    projectId: string;
+    environmentId: string;
+    projectId?: string;
     serverId?: string;
     composeStatus?: string;
     composeType?: 'docker-compose' | 'stack';
