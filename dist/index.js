@@ -26800,6 +26800,11 @@ async function runComposeDeployment(client, inputs) {
             }
             else {
                 core.info('✅ Using existing compose domain (serviceName: ' + existingDomain.serviceName + ')');
+                // Redeploy compose to ensure Traefik labels are applied
+                // Even if domain exists, labels might not be present if this is a fresh deployment
+                core.info('🔄 Redeploying compose to ensure Traefik labels are applied...');
+                await client.deployCompose(composeId, `Redeploy with existing domain: ${domainConfig.host}`, 'Ensure Traefik routing labels are applied');
+                core.info('✅ Compose redeployed with existing domain configuration');
             }
         }
         else {
