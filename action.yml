@@ -162,6 +162,17 @@ inputs:
     required: false
     default: ''
 
+  # ===== Docker Advanced Configuration =====
+  volumes:
+    description: 'Container volume mounts (one per line). Format: /host/path:/container/path or /host/path:/container/path:ro. Example: /var/run/docker.sock:/var/run/docker.sock'
+    required: false
+    default: ''
+
+  group-add:
+    description: 'Additional groups to add the container user to (comma-separated). Example: "988" for Docker group or "docker,sudo"'
+    required: false
+    default: ''
+
   # ===== Scaling Configuration =====
   replicas:
     description: 'Number of container replicas to run (Docker Swarm)'

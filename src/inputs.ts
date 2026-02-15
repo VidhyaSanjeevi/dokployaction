@@ -143,6 +143,10 @@ export function parseInputs(): ActionInputs {
     targetPort: parseIntInput(parseOptionalStringInput('target-port'), 'target-port'),
     restartPolicy: parseOptionalStringInput('restart-policy'),
 
+    // Docker Advanced
+    volumes: parseOptionalStringInput('volumes'),
+    groupAdd: parseOptionalStringInput('group-add'),
+
     // Scaling
     replicas: parseIntInput(parseOptionalStringInput('replicas'), 'replicas'),
 

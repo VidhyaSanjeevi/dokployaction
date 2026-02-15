@@ -334,6 +334,55 @@ export class DokployClient {
     core.info(`✅ Docker provider configured: ${dockerImage}`)
   }
 
+  /**
+   * Configure Docker advanced settings (volumes, group_add)
+   * These settings are passed directly to Docker/Docker Swarm
+   */
+  async saveDockerAdvancedSettings(
+    applicationId: string,
+    volumes?: string,
+    groupAdd?: string
+  ): Promise<void> {
+    if (!volumes && !groupAdd) {
+      return // Nothing to configure
+    }
+
+    core.info(`⚙️ Configuring Docker advanced settings for application: ${applicationId}`)
+
+    const payload: Record<string, unknown> = { applicationId }
+
+    // Parse volumes (one per line, format: /host:/container or /host:/container:ro)
+    if (volumes) {
+      const volumeList = volumes
+        .split('\n')
+        .map(v => v.trim())
+        .filter(v => v.length > 0)
+      if (volumeList.length > 0) {
+        payload.volumes = volumeList
+        core.info(`  Volumes: ${volumeList.length} mount(s)`)
+        volumeList.forEach(v => core.info(`    - ${v}`))
+      }
+    }
+
+    // Parse group_add (comma-separated group IDs)
+    if (groupAdd) {
+      const groups = groupAdd
+        .split(',')
+        .map(g => g.trim())
+        .filter(g => g.length > 0)
+      if (groups.length > 0) {
+        payload.groupAdd = groups
+        core.info(`  Groups: ${groups.join(', ')}`)
+      }
+    }
+
+    debugLog('Docker advanced settings', payload)
+
+    // Use saveAdvanced endpoint which handles additional Docker settings
+    await this.post('/api/application.saveAdvanced', payload)
+    core.info(`✅ Docker advanced settings configured`)
+  }
+
   // ========================================================================
   // Environment Variables
   // ========================================================================

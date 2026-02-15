@@ -274,6 +274,15 @@ export async function run(): Promise<void> {
     core.endGroup()
 
     // ====================================================================
+    // Step 7.5: Configure Docker advanced settings (volumes, group_add)
+    // ====================================================================
+    if (inputs.volumes || inputs.groupAdd) {
+      core.startGroup('⚙️ Docker Advanced Settings')
+      await client.saveDockerAdvancedSettings(applicationId, inputs.volumes, inputs.groupAdd)
+      core.endGroup()
+    }
+
+    // ====================================================================
     // Step 8: Configure environment variables
     // ====================================================================
     core.startGroup('🌍 Environment Variables Configuration')

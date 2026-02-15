@@ -25924,6 +25924,44 @@ class DokployClient {
         });
         core.info(`✅ Docker provider configured: ${dockerImage}`);
     }
+    /**
+     * Configure Docker advanced settings (volumes, group_add)
+     * These settings are passed directly to Docker/Docker Swarm
+     */
+    async saveDockerAdvancedSettings(applicationId, volumes, groupAdd) {
+        if (!volumes && !groupAdd) {
+            return; // Nothing to configure
+        }
+        core.info(`⚙️ Configuring Docker advanced settings for application: ${applicationId}`);
+        const payload = { applicationId };
+        // Parse volumes (one per line, format: /host:/container or /host:/container:ro)
+        if (volumes) {
+            const volumeList = volumes
+                .split('\n')
+                .map(v => v.trim())
+                .filter(v => v.length > 0);
+            if (volumeList.length > 0) {
+                payload.volumes = volumeList;
+                core.info(`  Volumes: ${volumeList.length} mount(s)`);
+                volumeList.forEach(v => core.info(`    - ${v}`));
+            }
+        }
+        // Parse group_add (comma-separated group IDs)
+        if (groupAdd) {
+            const groups = groupAdd
+                .split(',')
+                .map(g => g.trim())
+                .filter(g => g.length > 0);
+            if (groups.length > 0) {
+                payload.groupAdd = groups;
+                core.info(`  Groups: ${groups.join(', ')}`);
+            }
+        }
+        (0, helpers_1.debugLog)('Docker advanced settings', payload);
+        // Use saveAdvanced endpoint which handles additional Docker settings
+        await this.post('/api/application.saveAdvanced', payload);
+        core.info(`✅ Docker advanced settings configured`);
+    }
     // ========================================================================
     // Environment Variables
     // ========================================================================
@@ -26551,6 +26589,14 @@ async function run() {
         await client.saveDockerProvider(applicationId, inputs.dockerImage, inputs.registryUrl, inputs.registryUsername, inputs.registryPassword);
         core.endGroup();
         // ====================================================================
+        // Step 7.5: Configure Docker advanced settings (volumes, group_add)
+        // ====================================================================
+        if (inputs.volumes || inputs.groupAdd) {
+            core.startGroup('⚙️ Docker Advanced Settings');
+            await client.saveDockerAdvancedSettings(applicationId, inputs.volumes, inputs.groupAdd);
+            core.endGroup();
+        }
+        // ====================================================================
         // Step 8: Configure environment variables
         // ====================================================================
         core.startGroup('🌍 Environment Variables Configuration');
@@ -26985,6 +27031,9 @@ function parseInputs() {
         port: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('port'), 'port'),
         targetPort: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('target-port'), 'target-port'),
         restartPolicy: (0, helpers_1.parseOptionalStringInput)('restart-policy'),
+        // Docker Advanced
+        volumes: (0, helpers_1.parseOptionalStringInput)('volumes'),
+        groupAdd: (0, helpers_1.parseOptionalStringInput)('group-add'),
         // Scaling
         replicas: (0, helpers_1.parseIntInput)((0, helpers_1.parseOptionalStringInput)('replicas'), 'replicas'),
         // Registry

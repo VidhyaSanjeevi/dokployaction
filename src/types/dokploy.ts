@@ -137,6 +137,10 @@ export interface ActionInputs {
   targetPort?: number
   restartPolicy?: string
 
+  // Docker Advanced
+  volumes?: string
+  groupAdd?: string
+
   // Scaling
   replicas?: number
 

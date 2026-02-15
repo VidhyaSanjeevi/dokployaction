@@ -34,6 +34,11 @@ export declare class DokployClient {
     updateApplication(applicationId: string, config: Record<string, unknown>): Promise<void>;
     saveApplicationResources(applicationId: string, memoryLimit?: number, memoryReservation?: number, cpuLimit?: number, cpuReservation?: number, replicas?: number, restartPolicy?: string): Promise<void>;
     saveDockerProvider(applicationId: string, dockerImage: string, registryUrl?: string, username?: string, password?: string): Promise<void>;
+    /**
+     * Configure Docker advanced settings (volumes, group_add)
+     * These settings are passed directly to Docker/Docker Swarm
+     */
+    saveDockerAdvancedSettings(applicationId: string, volumes?: string, groupAdd?: string): Promise<void>;
     saveEnvironment(applicationId: string, envString: string): Promise<void>;
     createDomain(applicationId: string, domainConfig: Partial<Domain>): Promise<Domain>;
     updateDomain(domainId: string, domainConfig: Partial<Domain>): Promise<Domain>;

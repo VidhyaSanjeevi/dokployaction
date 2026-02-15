@@ -117,6 +117,8 @@ export interface ActionInputs {
     port?: number;
     targetPort?: number;
     restartPolicy?: string;
+    volumes?: string;
+    groupAdd?: string;
     replicas?: number;
     registryUrl?: string;
     registryUsername?: string;
