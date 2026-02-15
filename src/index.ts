@@ -243,23 +243,16 @@ async function runComposeDeployment(
   }
 
   if (composeContent) {
-    await client.saveComposeFile(composeId, composeContent)
+    // Parse environment variables
+    const envString = parseEnvironmentVariables(inputs)
+    // Save compose file and env in a single update call
+    await client.saveComposeFile(composeId, composeContent, envString)
   }
 
   core.endGroup()
 
   // ====================================================================
-  // Step 5: Configure environment variables (if provided)
-  // ====================================================================
-  const envString = parseEnvironmentVariables(inputs)
-  if (envString) {
-    core.startGroup('🌍 Environment Variables Configuration')
-    await client.saveComposeEnvironment(composeId, envString)
-    core.endGroup()
-  }
-
-  // ====================================================================
-  // Step 6: Deploy compose service
+  // Step 5: Deploy compose service
   // ====================================================================
   core.startGroup('🚀 Deployment')
   let deploymentId: string | undefined

@@ -26170,26 +26170,34 @@ class DokployClient {
         return response;
     }
     /**
-     * Save compose file content
+     * Save compose file content and environment variables
+     * Uses compose.update to set both composeFile and env
      */
-    async saveComposeFile(composeId, composeFile) {
-        core.info(`📝 Saving compose file for service: ${composeId}`);
+    async saveComposeFile(composeId, composeFile, envString) {
+        core.info(`📝 Saving compose configuration for service: ${composeId}`);
         const lineCount = composeFile ? composeFile.split('\n').length : 0;
-        (0, helpers_1.debugLog)(`Saving compose file (${lineCount} lines)`);
-        await this.post('/api/compose.saveComposeFile', {
+        const envCount = envString ? envString.split('\n').length : 0;
+        (0, helpers_1.debugLog)(`Saving compose file (${lineCount} lines)${envString ? ` and ${envCount} env vars` : ''}`);
+        const updateData = {
             composeId,
-            composeFile
-        });
-        core.info(`✅ Compose file saved (${lineCount} lines)`);
+            composeFile,
+            sourceType: 'raw' // Using raw compose file content
+        };
+        if (envString) {
+            updateData.env = envString;
+        }
+        await this.post('/api/compose.update', updateData);
+        core.info(`✅ Compose configuration saved (${lineCount} lines${envString ? `, ${envCount} env vars` : ''})`);
     }
     /**
      * Save environment variables for compose service
+     * Uses compose.update
      */
     async saveComposeEnvironment(composeId, envString) {
         core.info(`🌍 Configuring environment variables for compose service: ${composeId}`);
         const lineCount = envString ? envString.split('\n').length : 0;
         (0, helpers_1.debugLog)(`Saving ${lineCount} environment variables`);
-        await this.post('/api/compose.saveEnvironment', {
+        await this.post('/api/compose.update', {
             composeId,
             env: envString
         });
@@ -26696,20 +26704,14 @@ async function runComposeDeployment(client, inputs) {
         }
     }
     if (composeContent) {
-        await client.saveComposeFile(composeId, composeContent);
+        // Parse environment variables
+        const envString = (0, config_1.parseEnvironmentVariables)(inputs);
+        // Save compose file and env in a single update call
+        await client.saveComposeFile(composeId, composeContent, envString);
     }
     core.endGroup();
     // ====================================================================
-    // Step 5: Configure environment variables (if provided)
-    // ====================================================================
-    const envString = (0, config_1.parseEnvironmentVariables)(inputs);
-    if (envString) {
-        core.startGroup('🌍 Environment Variables Configuration');
-        await client.saveComposeEnvironment(composeId, envString);
-        core.endGroup();
-    }
-    // ====================================================================
-    // Step 6: Deploy compose service
+    // Step 5: Deploy compose service
     // ====================================================================
     core.startGroup('🚀 Deployment');
     let deploymentId;

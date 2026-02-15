@@ -77,11 +77,13 @@ export declare class DokployClient {
      */
     deployCompose(composeId: string, title?: string, description?: string): Promise<Deployment>;
     /**
-     * Save compose file content
+     * Save compose file content and environment variables
+     * Uses compose.update to set both composeFile and env
      */
-    saveComposeFile(composeId: string, composeFile: string): Promise<void>;
+    saveComposeFile(composeId: string, composeFile: string, envString?: string): Promise<void>;
     /**
      * Save environment variables for compose service
+     * Uses compose.update
      */
     saveComposeEnvironment(composeId: string, envString: string): Promise<void>;
 }

@@ -654,29 +654,40 @@ export class DokployClient {
   }
 
   /**
-   * Save compose file content
+   * Save compose file content and environment variables
+   * Uses compose.update to set both composeFile and env
    */
-  async saveComposeFile(composeId: string, composeFile: string): Promise<void> {
-    core.info(`📝 Saving compose file for service: ${composeId}`)
+  async saveComposeFile(composeId: string, composeFile: string, envString?: string): Promise<void> {
+    core.info(`📝 Saving compose configuration for service: ${composeId}`)
     const lineCount = composeFile ? composeFile.split('\n').length : 0
-    debugLog(`Saving compose file (${lineCount} lines)`)
+    const envCount = envString ? envString.split('\n').length : 0
+    
+    debugLog(`Saving compose file (${lineCount} lines)${envString ? ` and ${envCount} env vars` : ''}`)
 
-    await this.post('/api/compose.saveComposeFile', {
+    const updateData: Record<string, unknown> = {
       composeId,
-      composeFile
-    })
-    core.info(`✅ Compose file saved (${lineCount} lines)`)
+      composeFile,
+      sourceType: 'raw' // Using raw compose file content
+    }
+
+    if (envString) {
+      updateData.env = envString
+    }
+
+    await this.post('/api/compose.update', updateData)
+    core.info(`✅ Compose configuration saved (${lineCount} lines${envString ? `, ${envCount} env vars` : ''})`)
   }
 
   /**
    * Save environment variables for compose service
+   * Uses compose.update
    */
   async saveComposeEnvironment(composeId: string, envString: string): Promise<void> {
     core.info(`🌍 Configuring environment variables for compose service: ${composeId}`)
     const lineCount = envString ? envString.split('\n').length : 0
     debugLog(`Saving ${lineCount} environment variables`)
 
-    await this.post('/api/compose.saveEnvironment', {
+    await this.post('/api/compose.update', {
       composeId,
       env: envString
     })
