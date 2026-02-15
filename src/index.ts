@@ -41,6 +41,7 @@ export async function run(): Promise<void> {
     try {
       validateAllInputs({
         dockerImage: inputs.dockerImage,
+        deploymentType: inputs.deploymentType,
         applicationName: inputs.applicationName,
         projectName: inputs.projectName,
         environmentName: inputs.environmentName,

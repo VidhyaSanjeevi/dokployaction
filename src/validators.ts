@@ -219,6 +219,7 @@ export function validateDockerImage(value: string | undefined, fieldName: string
  */
 export function validateAllInputs(inputs: {
   dockerImage: string
+  deploymentType?: string
   applicationName?: string
   projectName?: string
   environmentName?: string
@@ -234,10 +235,14 @@ export function validateAllInputs(inputs: {
 }): void {
   const errors: ValidationError[] = []
 
-  try {
-    validateDockerImage(inputs.dockerImage, 'docker-image')
-  } catch (e) {
-    if (e instanceof ValidationError) errors.push(e)
+  // Only validate docker-image for application deployments
+  // Compose deployments define the image in docker-compose.yml
+  if (inputs.deploymentType !== 'compose') {
+    try {
+      validateDockerImage(inputs.dockerImage, 'docker-image')
+    } catch (e) {
+      if (e instanceof ValidationError) errors.push(e)
+    }
   }
 
   try {

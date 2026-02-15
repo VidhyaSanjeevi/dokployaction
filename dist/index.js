@@ -26495,6 +26495,7 @@ async function run() {
         try {
             (0, validators_1.validateAllInputs)({
                 dockerImage: inputs.dockerImage,
+                deploymentType: inputs.deploymentType,
                 applicationName: inputs.applicationName,
                 projectName: inputs.projectName,
                 environmentName: inputs.environmentName,
@@ -27873,12 +27874,16 @@ function validateDockerImage(value, fieldName) {
  */
 function validateAllInputs(inputs) {
     const errors = [];
-    try {
-        validateDockerImage(inputs.dockerImage, 'docker-image');
-    }
-    catch (e) {
-        if (e instanceof ValidationError)
-            errors.push(e);
+    // Only validate docker-image for application deployments
+    // Compose deployments define the image in docker-compose.yml
+    if (inputs.deploymentType !== 'compose') {
+        try {
+            validateDockerImage(inputs.dockerImage, 'docker-image');
+        }
+        catch (e) {
+            if (e instanceof ValidationError)
+                errors.push(e);
+        }
     }
     try {
         validateDnsName(inputs.applicationName, 'application-name');

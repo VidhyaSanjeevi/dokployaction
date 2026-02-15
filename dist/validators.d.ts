@@ -55,6 +55,7 @@ export declare function validateDockerImage(value: string | undefined, fieldName
  */
 export declare function validateAllInputs(inputs: {
     dockerImage: string;
+    deploymentType?: string;
     applicationName?: string;
     projectName?: string;
     environmentName?: string;
