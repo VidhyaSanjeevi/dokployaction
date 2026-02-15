@@ -331,6 +331,15 @@ async function runComposeDeployment(
         core.info(`   Service: ${serviceName}`)
         await client.createComposeDomain(composeId, serviceName, domainConfig)
         core.info(`✅ Domain recreated successfully with serviceName: ${serviceName}`)
+        
+        // Redeploy compose to apply new Traefik labels
+        core.info('🔄 Redeploying compose to apply Traefik labels...')
+        await client.deployCompose(
+          composeId,
+          `Redeploy with serviceName: ${serviceName}`,
+          'Apply Traefik routing labels after domain recreation'
+        )
+        core.info('✅ Compose redeployed with new domain configuration')
       } else {
         core.info('✅ Using existing compose domain (serviceName: ' + existingDomain.serviceName + ')')
       }
