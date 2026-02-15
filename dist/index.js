@@ -26775,9 +26775,28 @@ async function runComposeDeployment(client, inputs) {
             core.info(`   Path:       ${existingDomain.path || '/'}`);
             core.info(`   Protocol:   ${existingDomain.https ? 'HTTPS' : 'HTTP'}`);
             core.info(`   SSL:        ${existingDomain.certificateType || 'none'}`);
+            core.info(`   Service:    ${existingDomain.serviceName || 'MISSING ⚠️'}`);
             core.info(`   Type:       Compose`);
             core.info(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
-            core.info('✅ Using existing compose domain');
+            // Check if domain is missing serviceName (created before v1.2.28)
+            if (!existingDomain.serviceName) {
+                core.warning('⚠️ Domain is missing serviceName (created before v1.2.28)');
+                core.info('🔄 Recreating domain with serviceName for correct Traefik routing...');
+                const domainId = existingDomain.domainId || existingDomain.id;
+                if (domainId) {
+                    await client.removeDomain(domainId);
+                    core.info('✅ Old domain removed');
+                }
+                // Create new domain with serviceName
+                const serviceName = inputs.composeServiceName || composeName || 'app';
+                core.info(`➕ Creating new compose domain: ${domainConfig.host}:${domainConfig.port}${domainConfig.path}`);
+                core.info(`   Service: ${serviceName}`);
+                await client.createComposeDomain(composeId, serviceName, domainConfig);
+                core.info(`✅ Domain recreated successfully with serviceName: ${serviceName}`);
+            }
+            else {
+                core.info('✅ Using existing compose domain (serviceName: ' + existingDomain.serviceName + ')');
+            }
         }
         else {
             // Determine service name for routing

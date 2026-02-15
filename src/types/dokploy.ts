@@ -75,6 +75,7 @@ export interface Domain {
   https?: boolean
   certificateType?: 'letsencrypt' | 'custom' | 'none'
   domainType?: string
+  serviceName?: string
   stripPath?: boolean
   createdAt?: string
 }
