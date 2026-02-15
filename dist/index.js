@@ -25996,6 +25996,22 @@ class DokployClient {
         core.info(`✅ Domain created: ${domainConfig.host} (SSL: ${domainConfig.certificateType})`);
         return result;
     }
+    async createComposeDomain(composeId, domainConfig) {
+        core.info(`🌐 Creating compose domain: ${domainConfig.host}`);
+        (0, helpers_1.debugLog)('Compose domain configuration', domainConfig);
+        const result = await this.post('/api/domain.create', {
+            composeId,
+            domainType: 'compose',
+            ...domainConfig
+        });
+        core.info(`✅ Compose domain created: ${domainConfig.host} (SSL: ${domainConfig.certificateType})`);
+        return result;
+    }
+    async getDomainsByComposeId(composeId) {
+        (0, helpers_1.debugLog)('Getting domains for compose', { composeId });
+        const result = await this.get(`/api/domain.byComposeId?composeId=${composeId}`);
+        return result || [];
+    }
     async updateDomain(domainId, domainConfig) {
         core.info(`🔄 Updating domain: ${domainConfig.host}`);
         (0, helpers_1.debugLog)('Domain update configuration', domainConfig);
@@ -26734,12 +26750,47 @@ async function runComposeDeployment(client, inputs) {
     }
     core.endGroup();
     // ====================================================================
+    // Step 6: Domain Management (Compose)
+    // ====================================================================
+    let deploymentUrl;
+    if (inputs.domainHost) {
+        core.startGroup('🌐 Domain Management');
+        const protocol = inputs.domainHttps ? 'https' : 'http';
+        // Check if domain already exists
+        const domains = await client.getDomainsByComposeId(composeId);
+        const existingDomain = domains.find((d) => d.host === inputs.domainHost && (d.port === inputs.applicationPort || !d.port));
+        const domainConfig = {
+            host: inputs.domainHost,
+            port: inputs.applicationPort,
+            https: inputs.domainHttps,
+            path: inputs.domainPath || '/',
+            certificateType: inputs.sslCertificateType
+        };
+        if (existingDomain) {
+            core.info(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            core.info(`📋 Existing Domain Details:`);
+            core.info(`   Host:       ${existingDomain.host}`);
+            core.info(`   Port:       ${existingDomain.port || 'default'}`);
+            core.info(`   Path:       ${existingDomain.path || '/'}`);
+            core.info(`   Protocol:   ${existingDomain.https ? 'HTTPS' : 'HTTP'}`);
+            core.info(`   SSL:        ${existingDomain.certificateType || 'none'}`);
+            core.info(`   Type:       Compose`);
+            core.info(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+            core.info('✅ Using existing compose domain');
+        }
+        else {
+            core.info(`➕ Creating new compose domain: ${domainConfig.host}:${domainConfig.port}${domainConfig.path}`);
+            await client.createComposeDomain(composeId, domainConfig);
+            core.info(`✅ Domain created successfully: ${domainConfig.host}`);
+        }
+        deploymentUrl = `${protocol}://${domainConfig.host}`;
+        core.setOutput('deployment-url', deploymentUrl);
+        core.endGroup();
+    }
+    // ====================================================================
     // Step 7: Wait for deployment (if enabled)
     // ====================================================================
     let deploymentCompleted = false;
-    const deploymentUrl = inputs.domainHost
-        ? `https://${inputs.domainHost}`
-        : undefined;
     if (inputs.waitForDeployment && deploymentId) {
         core.startGroup('⏳ Waiting for Deployment');
         // If health check is enabled, do a quick health check first

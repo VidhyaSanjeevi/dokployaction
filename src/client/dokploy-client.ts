@@ -425,6 +425,25 @@ export class DokployClient {
     return result
   }
 
+  async createComposeDomain(composeId: string, domainConfig: Partial<Domain>): Promise<Domain> {
+    core.info(`🌐 Creating compose domain: ${domainConfig.host}`)
+    debugLog('Compose domain configuration', domainConfig)
+
+    const result = await this.post<Domain>('/api/domain.create', {
+      composeId,
+      domainType: 'compose',
+      ...domainConfig
+    })
+    core.info(`✅ Compose domain created: ${domainConfig.host} (SSL: ${domainConfig.certificateType})`)
+    return result
+  }
+
+  async getDomainsByComposeId(composeId: string): Promise<Domain[]> {
+    debugLog('Getting domains for compose', { composeId })
+    const result = await this.get<Domain[]>(`/api/domain.byComposeId?composeId=${composeId}`)
+    return result || []
+  }
+
   async updateDomain(domainId: string, domainConfig: Partial<Domain>): Promise<Domain> {
     core.info(`🔄 Updating domain: ${domainConfig.host}`)
     debugLog('Domain update configuration', domainConfig)

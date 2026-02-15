@@ -25,6 +25,7 @@ import { performHealthCheck } from './health-check'
 import { buildApplicationConfig, buildDomainConfig, parseEnvironmentVariables } from './config'
 import { sleep } from './utils/helpers'
 import { validateAllInputs, ValidationError, formatValidationError } from './validators'
+import type { Domain } from './types/dokploy'
 
 export async function run(): Promise<void> {
   try {
@@ -279,12 +280,55 @@ async function runComposeDeployment(
   core.endGroup()
 
   // ====================================================================
+  // Step 6: Domain Management (Compose)
+  // ====================================================================
+  let deploymentUrl: string | undefined
+
+  if (inputs.domainHost) {
+    core.startGroup('🌐 Domain Management')
+    const protocol = inputs.domainHttps ? 'https' : 'http'
+
+    // Check if domain already exists
+    const domains = await client.getDomainsByComposeId(composeId)
+    const existingDomain = domains.find(
+      (d: Domain) => d.host === inputs.domainHost && (d.port === inputs.applicationPort || !d.port)
+    )
+
+    const domainConfig: Partial<Domain> = {
+      host: inputs.domainHost,
+      port: inputs.applicationPort,
+      https: inputs.domainHttps,
+      path: inputs.domainPath || '/',
+      certificateType: inputs.sslCertificateType as 'letsencrypt' | 'custom' | 'none' | undefined
+    }
+
+    if (existingDomain) {
+      core.info(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+      core.info(`📋 Existing Domain Details:`)
+      core.info(`   Host:       ${existingDomain.host}`)
+      core.info(`   Port:       ${existingDomain.port || 'default'}`)
+      core.info(`   Path:       ${existingDomain.path || '/'}`)
+      core.info(`   Protocol:   ${existingDomain.https ? 'HTTPS' : 'HTTP'}`)
+      core.info(`   SSL:        ${existingDomain.certificateType || 'none'}`)
+      core.info(`   Type:       Compose`)
+      core.info(`━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`)
+      core.info('✅ Using existing compose domain')
+    } else {
+      core.info(`➕ Creating new compose domain: ${domainConfig.host}:${domainConfig.port}${domainConfig.path}`)
+      await client.createComposeDomain(composeId, domainConfig)
+      core.info(`✅ Domain created successfully: ${domainConfig.host}`)
+    }
+
+    deploymentUrl = `${protocol}://${domainConfig.host}`
+    core.setOutput('deployment-url', deploymentUrl)
+
+    core.endGroup()
+  }
+
+  // ====================================================================
   // Step 7: Wait for deployment (if enabled)
   // ====================================================================
   let deploymentCompleted = false
-  const deploymentUrl = inputs.domainHost 
-    ? `https://${inputs.domainHost}`
-    : undefined
   
   if (inputs.waitForDeployment && deploymentId) {
     core.startGroup('⏳ Waiting for Deployment')
