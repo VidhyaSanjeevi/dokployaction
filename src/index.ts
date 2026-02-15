@@ -262,22 +262,73 @@ async function runComposeDeployment(
   // ====================================================================
   // Step 7: Wait for deployment (if enabled)
   // ====================================================================
+  let deploymentCompleted = false
+  const deploymentUrl = inputs.domainHost 
+    ? `https://${inputs.domainHost}${inputs.healthCheckPath || ''}`
+    : undefined
+  
   if (inputs.waitForDeployment && deploymentId) {
     core.startGroup('⏳ Waiting for Deployment')
-    try {
-      const timeout = inputs.deploymentTimeout || 300
-      const finalDeployment = await client.waitForDeployment(deploymentId, timeout)
-      core.setOutput('deployment-status', finalDeployment.status || 'completed')
-      core.info(`✅ Deployment completed`)
-    } catch (waitError) {
-      core.setOutput('deployment-status', 'failed')
-      core.error(`❌ Deployment wait failed: ${waitError}`)
-      core.endGroup()
-      throw waitError
+    
+    // If health check is enabled, do a quick health check first
+    if (inputs.healthCheckEnabled && deploymentUrl) {
+      core.info('🔍 Quick health check before waiting for deployment...')
+      await sleep(5000) // Give container 5 seconds to start
+      
+      try {
+        const quickHealthStatus = await performHealthCheck(deploymentUrl, {
+          ...inputs,
+          healthCheckRetries: 3,
+          healthCheckInterval: 5,
+          healthCheckTimeout: 30
+        })
+        
+        if (quickHealthStatus === 'healthy') {
+          core.info('✅ Application is already healthy! Skipping deployment wait.')
+          core.setOutput('deployment-status', 'success')
+          deploymentCompleted = true
+          core.endGroup()
+        }
+      } catch (error) {
+        core.info('ℹ️ Quick health check did not pass, waiting for deployment...')
+      }
     }
-    core.endGroup()
+    
+    // If quick health check didn't pass, wait for deployment normally
+    if (!deploymentCompleted) {
+      try {
+        const timeout = inputs.deploymentTimeout || 300
+        const finalDeployment = await client.waitForDeployment(deploymentId, timeout)
+        core.setOutput('deployment-status', finalDeployment.status || 'completed')
+        core.info(`✅ Deployment completed`)
+        deploymentCompleted = true
+      } catch (waitError) {
+        core.setOutput('deployment-status', 'failed')
+        core.error(`❌ Deployment wait failed: ${waitError}`)
+        core.endGroup()
+        throw waitError
+      }
+      core.endGroup()
+    }
   } else {
     core.setOutput('deployment-status', 'success')
+  }
+
+  // ====================================================================
+  // Step 8: Health check (if enabled and not already done)
+  // ====================================================================
+  if (inputs.healthCheckEnabled && deploymentUrl && !deploymentCompleted) {
+    core.startGroup('🏥 Health Check')
+    const healthStatus = await performHealthCheck(deploymentUrl, inputs)
+    core.setOutput('health-check-status', healthStatus)
+    core.endGroup()
+  } else {
+    if (deploymentCompleted) {
+      core.info('✅ Health check already passed during quick check')
+      core.setOutput('health-check-status', 'healthy')
+    } else {
+      core.setOutput('health-check-status', 'skipped')
+    }
   }
 
   // ====================================================================
@@ -692,38 +743,70 @@ async function runApplicationDeployment(
     // ====================================================================
     // Step 12: Wait for deployment (if enabled)
     // ====================================================================
+    let deploymentCompleted = false
+    
     if (inputs.waitForDeployment && deploymentId) {
       core.startGroup('⏳ Waiting for Deployment')
-      try {
-        const timeout = inputs.deploymentTimeout || 300
-        const finalDeployment = await client.waitForDeployment(deploymentId, timeout)
-        core.setOutput('deployment-status', finalDeployment.status || 'completed')
-        core.info(`✅ Deployment completed in ${Math.round(((Date.now() - Date.parse(finalDeployment.startedAt || '')) / 1000))}s`)
-      } catch (waitError) {
-        core.setOutput('deployment-status', 'failed')
-        const errorMessage = waitError instanceof Error ? waitError.message : String(waitError)
-        core.error(`❌ Deployment wait failed: ${errorMessage}`)
+      
+      // If health check is enabled, do a quick health check first
+      // This can save significant time if the app is already healthy
+      if (inputs.healthCheckEnabled && deploymentUrl) {
+        core.info('🔍 Quick health check before waiting for deployment...')
+        await sleep(5000) // Give container 5 seconds to start
         
-        // Try to get deployment logs for debugging
-        if (deploymentId) {
-          try {
-            const logs = await client.getDeploymentLogs(deploymentId)
-            if (logs) {
-              core.error('')
-              core.error('Deployment Logs:')
-              core.error('='.repeat(60))
-              core.error(logs)
-              core.error('='.repeat(60))
-            }
-          } catch (logError) {
-            core.warning('Could not retrieve deployment logs')
+        try {
+          const quickHealthStatus = await performHealthCheck(deploymentUrl, {
+            ...inputs,
+            healthCheckRetries: 3,
+            healthCheckInterval: 5,
+            healthCheckTimeout: 30
+          })
+          
+          if (quickHealthStatus === 'healthy') {
+            core.info('✅ Application is already healthy! Skipping deployment wait.')
+            core.setOutput('deployment-status', 'success')
+            deploymentCompleted = true
+            core.endGroup()
           }
+        } catch (error) {
+          core.info('ℹ️ Quick health check did not pass, waiting for deployment...')
         }
-        
-        core.endGroup()
-        throw waitError
       }
-      core.endGroup()
+      
+      // If quick health check didn't pass, wait for deployment normally
+      if (!deploymentCompleted) {
+        try {
+          const timeout = inputs.deploymentTimeout || 300
+          const finalDeployment = await client.waitForDeployment(deploymentId, timeout)
+          core.setOutput('deployment-status', finalDeployment.status || 'completed')
+          core.info(`✅ Deployment completed in ${Math.round(((Date.now() - Date.parse(finalDeployment.startedAt || '')) / 1000))}s`)
+          deploymentCompleted = true
+        } catch (waitError) {
+          core.setOutput('deployment-status', 'failed')
+          const errorMessage = waitError instanceof Error ? waitError.message : String(waitError)
+          core.error(`❌ Deployment wait failed: ${errorMessage}`)
+          
+          // Try to get deployment logs for debugging
+          if (deploymentId) {
+            try {
+              const logs = await client.getDeploymentLogs(deploymentId)
+              if (logs) {
+                core.error('')
+                core.error('Deployment Logs:')
+                core.error('='.repeat(60))
+                core.error(logs)
+                core.error('='.repeat(60))
+              }
+            } catch (logError) {
+              core.warning('Could not retrieve deployment logs')
+            }
+          }
+          
+          core.endGroup()
+          throw waitError
+        }
+        core.endGroup()
+      }
     } else if (inputs.waitForDeployment && !deploymentId) {
       core.warning('⚠️ wait-for-deployment enabled but no deployment ID available, skipping wait')
       core.setOutput('deployment-status', 'success')
@@ -733,9 +816,10 @@ async function runApplicationDeployment(
     }
 
     // ====================================================================
-    // Step 13: Health check (if enabled)
+    // Step 13: Health check (if enabled and not already done)
     // ====================================================================
-    if (inputs.healthCheckEnabled && deploymentUrl) {
+    if (inputs.healthCheckEnabled && deploymentUrl && !deploymentCompleted) {
+      // Only do full health check if we didn't already verify health in quick check
       core.startGroup('🏥 Health Check')
       const healthStatus = await performHealthCheck(deploymentUrl, inputs)
       core.setOutput('health-check-status', healthStatus)
@@ -758,7 +842,12 @@ async function runApplicationDeployment(
 
       core.endGroup()
     } else {
-      core.setOutput('health-check-status', 'skipped')
+      if (deploymentCompleted) {
+        core.info('✅ Health check already passed during quick check')
+        core.setOutput('health-check-status', 'healthy')
+      } else {
+        core.setOutput('health-check-status', 'skipped')
+      }
     }
 
     // ====================================================================
